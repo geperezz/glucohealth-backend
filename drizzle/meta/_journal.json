@@ -1,0 +1,27 @@
+{
+  "version": "5",
+  "dialect": "pg",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1713889222501,
+      "tag": "0000_sturdy_micromax",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1714264409935,
+      "tag": "0001_quick_violations",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1715118448357,
+      "tag": "0002_living_agent_brand",
+      "breakpoints": true
+    }
+  ]
+}

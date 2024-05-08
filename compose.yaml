@@ -1,0 +1,30 @@
+services:
+  glucohealth-backend:
+    build:
+      context: .
+      args:
+        - APP_PORT=${APP_PORT}
+    depends_on:
+      glucohealth-database:
+        condition: service_healthy
+    ports:
+      - target: ${APP_PORT}
+        published: ${APP_PORT}
+    env_file:
+      - ./.env
+  glucohealth-database:
+    image: postgres:16.2
+    restart: always
+    ports:
+      - target: ${DATABASE_PORT}
+        published: ${DATABASE_PORT}
+    volumes:
+      - glucohealth-database:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_DB=${DATABASE_NAME}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+volumes:
+  glucohealth-database:
