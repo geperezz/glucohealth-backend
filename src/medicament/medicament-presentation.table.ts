@@ -5,7 +5,10 @@ export const medicamentPresentationTable = pgTable(
   'medicaments_presentations',
   {
     medicamentId: integer('medicament_id')
-      .references(() => medicamentTable.id)
+      .references(() => medicamentTable.id, {
+        onUpdate: 'cascade',
+        onDelete: 'cascade',
+      })
       .notNull(),
     presentation: text('presentation').notNull(),
   },
