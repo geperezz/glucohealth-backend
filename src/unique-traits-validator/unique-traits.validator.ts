@@ -15,7 +15,8 @@ export function areTheTraitsWellSpecified(
   traits = booleanize(traits);
 
   const areThereMalformedTraits = traits.some(
-    (trait) => Array.isArray(trait) && !trait.every((element) => element),
+    (trait) =>
+      Array.isArray(trait) && !trait.every((element) => element === trait[0]),
   );
   if (areThereMalformedTraits) {
     return false;
