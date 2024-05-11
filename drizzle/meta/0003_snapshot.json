@@ -133,99 +133,14 @@
         }
       }
     },
-    "public.nurses": {
-      "name": "nurses",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "full_name": {
-          "name": "full_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "email": {
-          "name": "email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "phone_number": {
-          "name": "phone_number",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "national_id": {
-          "name": "national_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "password": {
-          "name": "password",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "nurses_email_unique": {
-          "name": "nurses_email_unique",
-          "columns": [
-            "email"
-          ],
-          "nullsNotDistinct": false
-        },
-        "nurses_national_id_unique": {
-          "name": "nurses_national_id_unique",
-          "columns": [
-            "national_id"
-          ],
-          "nullsNotDistinct": false
-        }
-      }
-    },
     "public.patients": {
       "name": "patients",
       "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "integer",
           "primaryKey": true,
-          "notNull": true
-        },
-        "full_name": {
-          "name": "full_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "email": {
-          "name": "email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "phone_number": {
-          "name": "phone_number",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "national_id": {
-          "name": "national_id",
-          "type": "text",
-          "primaryKey": false,
           "notNull": true
         },
         "age": {
@@ -245,10 +160,70 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "patients_id_users_id_fk": {
+          "name": "patients_id_users_id_fk",
+          "tableFrom": "patients",
+          "columnsFrom": [
+            "id"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "full_name": {
+          "name": "full_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone_number": {
+          "name": "phone_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "national_id": {
+          "name": "national_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
         },
         "password": {
           "name": "password",
           "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "user_role",
           "primaryKey": false,
           "notNull": true
         }
@@ -257,15 +232,15 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "patients_email_unique": {
-          "name": "patients_email_unique",
+        "users_email_unique": {
+          "name": "users_email_unique",
           "columns": [
             "email"
           ],
           "nullsNotDistinct": false
         },
-        "patients_national_id_unique": {
-          "name": "patients_national_id_unique",
+        "users_national_id_unique": {
+          "name": "users_national_id_unique",
           "columns": [
             "national_id"
           ],
@@ -274,13 +249,23 @@
       }
     }
   },
-  "enums": {},
+  "enums": {
+    "public.user_role": {
+      "name": "user_role",
+      "schema": "public",
+      "values": [
+        "admin",
+        "nurse",
+        "patient"
+      ]
+    }
+  },
   "schemas": {},
   "_meta": {
     "schemas": {},
     "tables": {},
     "columns": {}
   },
-  "id": "0f4ef994-172f-4e6f-879e-4503bb787d65",
-  "prevId": "88fbb059-629b-4579-b742-f1edd817ce38"
+  "id": "4bb88cd4-6a90-4118-8227-4d9f879f6c41",
+  "prevId": "0f4ef994-172f-4e6f-879e-4503bb787d65"
 }

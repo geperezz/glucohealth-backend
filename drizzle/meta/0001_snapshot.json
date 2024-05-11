@@ -1,10 +1,8 @@
 {
-  "id": "88fbb059-629b-4579-b742-f1edd817ce38",
-  "prevId": "838ab568-e66d-49bf-8b00-d2ee2ef3001d",
-  "version": "5",
-  "dialect": "pg",
+  "version": "6",
+  "dialect": "postgresql",
   "tables": {
-    "nurses": {
+    "public.nurses": {
       "name": "nurses",
       "schema": "",
       "columns": {
@@ -51,21 +49,21 @@
       "uniqueConstraints": {
         "nurses_email_unique": {
           "name": "nurses_email_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "email"
-          ]
+          ],
+          "nullsNotDistinct": false
         },
         "nurses_national_id_unique": {
           "name": "nurses_national_id_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "national_id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       }
     },
-    "patients": {
+    "public.patients": {
       "name": "patients",
       "schema": "",
       "columns": {
@@ -130,17 +128,17 @@
       "uniqueConstraints": {
         "patients_email_unique": {
           "name": "patients_email_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "email"
-          ]
+          ],
+          "nullsNotDistinct": false
         },
         "patients_national_id_unique": {
           "name": "patients_national_id_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "national_id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       }
     }
@@ -148,8 +146,10 @@
   "enums": {},
   "schemas": {},
   "_meta": {
-    "columns": {},
     "schemas": {},
-    "tables": {}
-  }
+    "tables": {},
+    "columns": {}
+  },
+  "id": "88fbb059-629b-4579-b742-f1edd817ce38",
+  "prevId": "838ab568-e66d-49bf-8b00-d2ee2ef3001d"
 }

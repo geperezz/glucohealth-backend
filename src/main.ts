@@ -23,6 +23,7 @@ function addSwaggerSupport(app: INestApplication): void {
     .setTitle('GlucoHealth')
     .setDescription('The GlucoHealth API documentation')
     .setVersion(version)
+    .addBearerAuth()
     .build();
   const openApiDocument = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, openApiDocument);

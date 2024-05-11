@@ -1,13 +1,17 @@
-function booleanize(traits: (unknown | unknown[])[]): (boolean | boolean[])[] {
+function booleanize(
+  traits: (unknown | (unknown | undefined)[] | undefined)[],
+): (boolean | boolean[])[] {
   return traits.map((trait) => {
     if (Array.isArray(trait)) {
       return booleanize(trait);
     }
-    return !!trait;
+    return trait !== undefined;
   }) as any;
 }
 
-export function areTheTraitsWellSpecified(traits: (unknown | unknown[])[]) {
+export function areTheTraitsWellSpecified(
+  traits: (unknown | (unknown | undefined)[] | undefined)[],
+) {
   traits = booleanize(traits);
 
   const areThereMalformedTraits = traits.some(

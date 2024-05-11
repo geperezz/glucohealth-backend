@@ -1,16 +1,11 @@
 import { createZodDto } from 'nestjs-zod';
-import { ZodError, z } from 'nestjs-zod/z';
+import { ZodError } from 'nestjs-zod/z';
 
 import { Nurse } from '../nurse.repository';
 import { InternalServerErrorException } from '@nestjs/common';
+import { userDtoSchema } from 'src/user/dtos/user.dto';
 
-export const nurseDtoSchema = z.object({
-  id: z.coerce.number().int(),
-  fullName: z.string().trim().min(1),
-  email: z.string().email(),
-  phoneNumber: z.string().trim().min(1),
-  nationalId: z.string().trim().min(1),
-});
+export const nurseDtoSchema = userDtoSchema.omit({ role: true });
 
 export class NurseDto extends createZodDto(nurseDtoSchema) {
   static fromModel(nurse: Nurse) {

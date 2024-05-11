@@ -3,6 +3,7 @@ import { createZodDto } from 'nestjs-zod';
 
 import { nurseDtoSchema } from './nurse.dto';
 import { areTheTraitsWellSpecified } from 'src/unique-traits-validator/unique-traits.validator';
+import { NurseUniqueTrait } from '../nurse.repository';
 
 export const nurseUniqueTraitDtoSchema = nurseDtoSchema
   .pick({
@@ -23,6 +24,16 @@ export const nurseUniqueTraitDtoSchema = nurseDtoSchema
 export class NurseUniqueTraitDto extends createZodDto(
   nurseUniqueTraitDtoSchema,
 ) {
+  static toModel(dto: NurseUniqueTraitDto): NurseUniqueTrait {
+    if (dto.id !== undefined) {
+      return NurseUniqueTrait.fromId(dto.id);
+    }
+    if (dto.email !== undefined) {
+      return NurseUniqueTrait.fromEmail(dto.email);
+    }
+    return NurseUniqueTrait.fromNationalId(dto.nationalId!);
+  }
+
   id?: z.infer<typeof nurseUniqueTraitDtoSchema>['id'] = super.id;
   email?: z.infer<typeof nurseUniqueTraitDtoSchema>['email'] = super.email;
   nationalId?: z.infer<typeof nurseUniqueTraitDtoSchema>['nationalId'] = super

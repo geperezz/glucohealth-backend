@@ -1,10 +1,8 @@
 {
-  "id": "838ab568-e66d-49bf-8b00-d2ee2ef3001d",
-  "prevId": "00000000-0000-0000-0000-000000000000",
-  "version": "5",
-  "dialect": "pg",
+  "version": "6",
+  "dialect": "postgresql",
   "tables": {
-    "nurses": {
+    "public.nurses": {
       "name": "nurses",
       "schema": "",
       "columns": {
@@ -51,10 +49,10 @@
       "uniqueConstraints": {
         "nurses_national_id_unique": {
           "name": "nurses_national_id_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "national_id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       }
     }
@@ -62,8 +60,10 @@
   "enums": {},
   "schemas": {},
   "_meta": {
-    "columns": {},
     "schemas": {},
-    "tables": {}
-  }
+    "tables": {},
+    "columns": {}
+  },
+  "id": "838ab568-e66d-49bf-8b00-d2ee2ef3001d",
+  "prevId": "00000000-0000-0000-0000-000000000000"
 }

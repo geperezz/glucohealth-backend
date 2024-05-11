@@ -11,7 +11,10 @@ export class ZodErrorFilter implements ExceptionFilter {
     response.status(400).json({
       statusCode: 400,
       message: 'Validation Failed',
-      errors: exception.errors.map((error) => error.message),
+      errors: exception.errors.map((error) => ({
+        error: error.message,
+        path: error.path,
+      })),
     });
   }
 }

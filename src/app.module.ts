@@ -7,9 +7,17 @@ import { ZodErrorFilter } from './zod/zod-error.filter';
 import { SuccessfulResponseBuilderInterceptor } from './successful-response-builder/successful-response-builder.interceptor';
 import { PatientModule } from './patient/patient.module';
 import { MedicamentModule } from './medicament/medicament.module';
+import { AuthModule } from './auth/auth.module';
+import { UserModule } from './user/user.module';
 
 @Module({
-  imports: [NurseModule, PatientModule, MedicamentModule],
+  imports: [
+    AuthModule,
+    UserModule,
+    NurseModule,
+    PatientModule,
+    MedicamentModule,
+  ],
   providers: [
     {
       provide: APP_PIPE,

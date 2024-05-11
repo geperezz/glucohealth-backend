@@ -21,9 +21,11 @@ import { MedicamentFiltersDto } from './dtos/medicament-filters.dto';
 import { MedicamentPageDto } from './dtos/medicament-page.dto';
 import { PaginationOptionsDto } from 'src/pagination/dtos/pagination-options.dto';
 import { MedicamentUniqueTraitDto } from './dtos/medicament-unique-trait.dto';
+import { MustBeLoggedInAs } from 'src/auth/must-be-logged-in-as.decorator';
 
 @Controller()
 @ApiTags('Medicaments')
+@MustBeLoggedInAs('admin')
 export class MedicamentController {
   constructor(private readonly medicamentRepository: MedicamentRepository) {}
 
@@ -38,6 +40,7 @@ export class MedicamentController {
   }
 
   @Get('/medicaments/')
+  @MustBeLoggedInAs('nurse')
   async findPage(
     @Query() paginationOptionsDto: PaginationOptionsDto,
     @Query() medicamentFiltersDto: MedicamentFiltersDto,
@@ -54,6 +57,7 @@ export class MedicamentController {
   }
 
   @Get('/medicament/')
+  @MustBeLoggedInAs('nurse')
   async findOne(
     @Query() medicamentUniqueTraitDto: MedicamentUniqueTraitDto,
   ): Promise<MedicamentDto> {
