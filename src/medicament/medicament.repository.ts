@@ -226,7 +226,7 @@ export class MedicamentRepository {
 
         await transaction
           .delete(medicamentSideEffectTable)
-          .where(eq(medicamentPresentationTable.medicamentId, medicament.id));
+          .where(eq(medicamentSideEffectTable.medicamentId, medicament.id));
         await transaction.insert(medicamentSideEffectTable).values(
           medicamentReplacement.sideEffects.map((sideEffect) => ({
             medicamentId: medicament.id,
@@ -251,10 +251,16 @@ export class MedicamentRepository {
         }
 
         await transaction
+          .delete(medicamentPresentationTable)
+          .where(eq(medicamentPresentationTable.medicamentId, medicament.id));
+
+        await transaction
+          .delete(medicamentSideEffectTable)
+          .where(eq(medicamentSideEffectTable.medicamentId, medicament.id));
+
+        await transaction
           .delete(medicamentTable)
-          .where(
-            this.buildFilterConditionFromUniqueTrait(medicamentUniqueTrait),
-          );
+          .where(eq(medicamentTable.id, medicament.id));
 
         return medicament;
       },
