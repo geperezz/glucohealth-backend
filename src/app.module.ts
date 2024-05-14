@@ -9,6 +9,9 @@ import { PatientModule } from './patient/patient.module';
 import { MedicamentModule } from './medicament/medicament.module';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
+import { join } from 'path';
 
 @Module({
   imports: [
@@ -17,6 +20,24 @@ import { UserModule } from './user/user.module';
     NurseModule,
     PatientModule,
     MedicamentModule,
+    MailerModule.forRootAsync({
+      useFactory: async () => ({
+        transport: {
+          host: process.env.EMAIL_HOST,
+          auth: {
+            user: process.env.EMAIL_USERNAME,
+            pass: process.env.EMAIL_PASSWORD,
+          },
+        },
+        template: {
+          dir: join(__dirname, '/templates'),
+          adapter: new HandlebarsAdapter(),
+          options: {
+            strict: true,
+          },
+        },
+      }),
+    }),
   ],
   providers: [
     {

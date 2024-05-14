@@ -11,6 +11,7 @@ import {
   UserRepository,
   UserUniqueTrait,
 } from 'src/user/user.repository';
+import { MailerService } from '@nestjs-modules/mailer';
 
 export type Nurse = Omit<User, 'role'>;
 export type NurseCreation = Omit<UserCreation, 'role'>;
@@ -33,6 +34,7 @@ export class NurseRepository {
     @Inject('DRIZZLE_CLIENT')
     private readonly drizzleClient: DrizzleClient,
     private readonly userRepository: UserRepository,
+    private readonly mailerService: MailerService,
   ) {}
 
   async create(
@@ -48,6 +50,24 @@ export class NurseRepository {
           },
           transaction,
         );
+
+        try {
+          await this.mailerService.sendMail({
+            to: user.email,
+            subject: `Registro GlucoHealth`,
+            template: './signup',
+            context: {
+              name: user.fullName,
+              role: "enfermero/a",
+              email: user.email,
+              password: nurseCreation.password,
+            }
+          });
+        } catch (error) {
+          throw new Error(
+            'An unexpected situation ocurred while sending the email',
+          );
+        }
 
         return this.buildNurseEntity(user);
       },
