@@ -14,9 +14,16 @@ import {
   UserRepository,
   UserUniqueTrait,
 } from 'src/user/user.repository';
+import {
+  FilterByTreatmentFields,
+  Treatment,
+  TreatmentRepository,
+} from 'src/treatment/treatment.repository';
 
 export type Patient = Omit<User, 'role'> &
-  Omit<typeof patientTable.$inferSelect, 'id'>;
+  Omit<typeof patientTable.$inferSelect, 'id'> & {
+    treatments: Omit<Treatment, 'patientId'>[];
+  };
 export type PatientCreation = Omit<UserCreation, 'role' | 'password'> &
   Omit<typeof patientTable.$inferInsert, 'id'> & {
     password?: (typeof userTable.$inferInsert)['password'];
@@ -72,6 +79,7 @@ export class PatientRepository {
     @Inject('DRIZZLE_CLIENT')
     private readonly drizzleClient: DrizzleClient,
     private readonly userRepository: UserRepository,
+    private readonly treatmentRepository: TreatmentRepository,
   ) {}
 
   async create(
@@ -96,7 +104,7 @@ export class PatientRepository {
           })
           .returning();
 
-        return this.buildPatientEntity(user, patient);
+        return this.buildPatientEntity(user, patient, []);
       },
     );
   }
@@ -148,9 +156,37 @@ export class PatientRepository {
           .from(patientTable)
           .where(eq(patientTable.id, user.id));
 
-        return this.buildPatientEntity(user, patient);
+        const treatments = await this.treatmentRepository.findAll([
+          new FilterByTreatmentFields({ patientId: patient.id }),
+        ]);
+
+        return this.buildPatientEntity(user, patient, treatments);
       },
     );
+  }
+
+  private buildPatientEntity(
+    user: User,
+    rawPatient: typeof patientTable.$inferSelect,
+    treatments: Treatment[],
+  ): Patient {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { role, ...userWithoutRole } = user;
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, ...rawPatientWithoutId } = rawPatient;
+
+    const treatmentsWithoutPatientId = treatments.map(
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      ({ patientId, ...treatmentWithoutPatientId }) =>
+        treatmentWithoutPatientId,
+    );
+
+    return {
+      ...userWithoutRole,
+      ...rawPatientWithoutId,
+      treatments: treatmentsWithoutPatientId,
+    };
   }
 
   async replace(
@@ -173,31 +209,14 @@ export class PatientRepository {
           transaction,
         );
 
-        const [patient] = await transaction
+        await transaction
           .update(patientTable)
           .set(patientReplacement)
-          .where(eq(patientTable.id, user.id))
-          .returning();
+          .where(eq(patientTable.id, user.id));
 
-        return this.buildPatientEntity(user, patient);
+        return (await this.findOne(PatientUniqueTrait.fromId(user.id)))!;
       },
     );
-  }
-
-  private buildPatientEntity(
-    user: User,
-    rawPatient: typeof patientTable.$inferSelect,
-  ): Patient {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { role, ...userWithoutRole } = user;
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, ...rawPatientWithoutId } = rawPatient;
-
-    return {
-      ...userWithoutRole,
-      ...rawPatientWithoutId,
-    };
   }
 
   async delete(

@@ -49,7 +49,7 @@ export class NurseRepository {
           transaction,
         );
 
-        return this.buildNurseEntity(user);
+        return this.buildNurse(user);
       },
     );
   }
@@ -96,9 +96,18 @@ export class NurseRepository {
           return null;
         }
 
-        return this.buildNurseEntity(user);
+        return this.buildNurse(user);
       },
     );
+  }
+
+  private buildNurse(user: User): Nurse {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { role, ...userWithoutRole } = user;
+
+    return {
+      ...userWithoutRole,
+    };
   }
 
   async replace(
@@ -121,16 +130,9 @@ export class NurseRepository {
           transaction,
         );
 
-        return this.buildNurseEntity(user);
+        return (await this.findOne(NurseUniqueTrait.fromId(user.id)))!;
       },
     );
-  }
-
-  private buildNurseEntity(user: User): Nurse {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { role, ...userWithoutRole } = user;
-
-    return userWithoutRole;
   }
 
   async delete(
@@ -139,16 +141,14 @@ export class NurseRepository {
   ): Promise<Nurse> {
     return await (transaction ?? this.drizzleClient).transaction(
       async (transaction) => {
-        if (!(await this.findOne(nurseUniqueTrait))) {
+        const nurse = await this.findOne(nurseUniqueTrait);
+        if (!nurse) {
           throw new NurseNotFoundError();
         }
 
-        const user = await this.userRepository.delete(
-          nurseUniqueTrait,
-          transaction,
-        );
+        await this.userRepository.delete(nurseUniqueTrait, transaction);
 
-        return this.buildNurseEntity(user);
+        return nurse;
       },
     );
   }

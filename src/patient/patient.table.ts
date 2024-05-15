@@ -1,4 +1,5 @@
 import { integer, pgTable } from 'drizzle-orm/pg-core';
+
 import { userTable } from 'src/user/user.table';
 
 export const patientTable = pgTable('patients', {

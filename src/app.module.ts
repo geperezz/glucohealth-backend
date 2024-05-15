@@ -9,6 +9,7 @@ import { PatientModule } from './patient/patient.module';
 import { MedicamentModule } from './medicament/medicament.module';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
+import { TreatmentModule } from './treatment/treatment.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { UserModule } from './user/user.module';
     NurseModule,
     PatientModule,
     MedicamentModule,
+    TreatmentModule,
   ],
   providers: [
     {
