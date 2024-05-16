@@ -85,17 +85,18 @@ export class UserRepository {
   ): Promise<User> {
     return await (transaction ?? this.drizzleClient).transaction(
       async (transaction) => {
+        const passwordToUse =
+          userCreation.password ?? this.generateRandomPassword();
+
         const [user] = await transaction
           .insert(userTable)
           .values({
             ...userCreation,
-            password: this.hashPassword(
-              userCreation.password ?? this.generateRandomPassword(),
-            ),
+            password: this.hashPassword(passwordToUse),
           })
           .returning();
 
-        return user;
+        return { ...user, password: passwordToUse };
       },
     );
   }
