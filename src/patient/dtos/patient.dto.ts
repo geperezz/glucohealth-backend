@@ -10,6 +10,7 @@ export const patientDtoSchema = userDtoSchema.omit({ role: true }).extend({
   age: z.coerce.number().int().min(0).nullable(),
   weightInKg: z.coerce.number().gt(0).nullable(),
   heightInCm: z.coerce.number().min(1).nullable(),
+  bmi: z.coerce.number().gt(0).nullable(),
   treatments: z.array(treatmentDtoSchema.omit({ patientId: true })),
 });
 

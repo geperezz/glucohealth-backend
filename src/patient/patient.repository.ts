@@ -22,6 +22,7 @@ import {
 
 export type Patient = Omit<User, 'role'> &
   Omit<typeof patientTable.$inferSelect, 'id'> & {
+    bmi: number | null;
     treatments: Omit<Treatment, 'patientId'>[];
   };
 export type PatientCreation = Omit<UserCreation, 'role' | 'password'> &
@@ -182,10 +183,16 @@ export class PatientRepository {
         treatmentWithoutPatientId,
     );
 
+    const bmi =
+      rawPatient.weightInKg && rawPatient.heightInCm
+        ? rawPatient.weightInKg / Math.pow(rawPatient.heightInCm / 100, 2)
+        : null;
+
     return {
       ...userWithoutRole,
       ...rawPatientWithoutId,
       treatments: treatmentsWithoutPatientId,
+      bmi,
     };
   }
 
