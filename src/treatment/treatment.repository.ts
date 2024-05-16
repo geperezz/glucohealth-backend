@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { SQL, and, count, eq } from 'drizzle-orm';
+import { SQL, and, count, eq, sql } from 'drizzle-orm';
+import { DateTime } from 'luxon';
 
 import { DrizzleClient, DrizzleTransaction } from 'src/drizzle/drizzle.client';
 import { PaginationOptions } from 'src/pagination/models/pagination-options.model';
@@ -12,10 +13,16 @@ import {
   TreatmentMedicamentRepository,
 } from './treatment-medicament/treatment-medicament.repository';
 
-export type Treatment = typeof treatmentTable.$inferSelect & {
+export type Treatment = Omit<
+  typeof treatmentTable.$inferSelect,
+  'deletedAt'
+> & {
   medicaments: Omit<TreatmentMedicament, 'treatmentId'>[];
 };
-export type TreatmentCreation = typeof treatmentTable.$inferInsert & {
+export type TreatmentCreation = Omit<
+  typeof treatmentTable.$inferInsert,
+  'deletedAt'
+> & {
   medicaments: Omit<TreatmentMedicamentCreation, 'treatmentId'>[];
 };
 export type TreatmentReplacement = TreatmentCreation;
@@ -107,7 +114,12 @@ export class TreatmentRepository {
         const filteredTreatmentsQuery = transaction
           .select()
           .from(treatmentTable)
-          .where(and(...filters.map((filter) => filter.toSql(transaction))))
+          .where(
+            and(
+              ...filters.map((filter) => filter.toSql(transaction)),
+              eq(treatmentTable.deletedAt, sql`NULL`),
+            ),
+          )
           .as('filtered_treatments');
 
         const filteredRawTreatmentsPage = await transaction
@@ -155,7 +167,12 @@ export class TreatmentRepository {
         const filteredRawTreatments = await transaction
           .select()
           .from(treatmentTable)
-          .where(and(...filters.map((filter) => filter.toSql(transaction))));
+          .where(
+            and(
+              ...filters.map((filter) => filter.toSql(transaction)),
+              eq(treatmentTable.deletedAt, sql`NULL`),
+            ),
+          );
 
         const filteredTreatments = await Promise.all(
           filteredRawTreatments.map(
@@ -185,8 +202,9 @@ export class TreatmentRepository {
           .from(treatmentTable)
           .where(
             and(
-              treatmentUniqueTrait.toSql(),
               ...filters.map((filter) => filter.toSql(transaction)),
+              treatmentUniqueTrait.toSql(),
+              eq(treatmentTable.deletedAt, sql`NULL`),
             ),
           );
         if (!treatment) {
@@ -222,7 +240,12 @@ export class TreatmentRepository {
         const [treatment] = await transaction
           .update(treatmentTable)
           .set(treatmentReplacement)
-          .where(treatmentUniqueTrait.toSql())
+          .where(
+            and(
+              treatmentUniqueTrait.toSql(),
+              eq(treatmentTable.deletedAt, sql`NULL`),
+            ),
+          )
           .returning();
 
         await this.treatmentMedicamentRepository.deleteMany(
@@ -275,16 +298,9 @@ export class TreatmentRepository {
           throw new TreatmentNotFoundError();
         }
 
-        await this.treatmentMedicamentRepository.deleteMany(
-          [
-            new FilterByTreatmentMedicamentFields({
-              treatmentId: treatment.id,
-            }),
-          ],
-          transaction,
-        );
         await transaction
-          .delete(treatmentTable)
+          .update(treatmentTable)
+          .set({ deletedAt: new Date(DateTime.now().toISO()) })
           .where(eq(treatmentTable.id, treatment.id));
 
         return treatment;

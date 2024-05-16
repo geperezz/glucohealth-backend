@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { integer, pgTable, serial, timestamp } from 'drizzle-orm/pg-core';
 
 import { patientTable } from 'src/patient/patient.table';
@@ -7,5 +8,5 @@ export const treatmentTable = pgTable('treatments', {
   patientId: integer('patient_id')
     .references(() => patientTable.id)
     .notNull(),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at').default(sql`NULL`),
 });

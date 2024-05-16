@@ -13,6 +13,4 @@ export class TreatmentFiltersDto extends createZodDto(
   id?: z.infer<typeof treatmentFiltersDtoSchema>['id'] = super.id;
   patientId?: z.infer<typeof treatmentFiltersDtoSchema>['patientId'] = super
     .patientId;
-  createdAt?: z.infer<typeof treatmentFiltersDtoSchema>['createdAt'] = super
-    .createdAt;
 }

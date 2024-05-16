@@ -8,15 +8,25 @@ import { TreatmentMedicament } from '../treatment-medicament.repository';
 
 export const treatmentMedicamentDtoSchema = z.object({
   medicamentId: medicamentDtoSchema.shape.id,
-  takingSchedule: z.string().refine((takingSchedule) => {
-    try {
-      cronParser.parseExpression(takingSchedule);
-      return true;
-    } catch (err) {
-      return false;
-    }
-  }),
-  createdAt: z.coerce.date(),
+  takingSchedulesStartingTimestamp: z.coerce.date(),
+  takingSchedulesEndingTimestamp: z.coerce.date(),
+  takingSchedules: z
+    .array(
+      z.object({
+        takingSchedule: z.string(),
+      }),
+    )
+    .min(1)
+    .refine((takingSchedules) => {
+      try {
+        takingSchedules.map(({ takingSchedule }) =>
+          cronParser.parseExpression(takingSchedule),
+        );
+        return true;
+      } catch (err) {
+        return false;
+      }
+    }),
 });
 
 export class TreatmentMedicamentDto extends createZodDto(

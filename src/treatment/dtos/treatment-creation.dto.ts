@@ -6,14 +6,7 @@ import { treatmentMedicamentDtoSchema } from '../treatment-medicament/dtos/treat
 
 export const treatmentCreationDtoSchema = treatmentDtoSchema.extend({
   id: treatmentDtoSchema.shape.id.optional(),
-  medicaments: z
-    .array(
-      treatmentMedicamentDtoSchema.extend({
-        createdAt: treatmentMedicamentDtoSchema.shape.createdAt.optional(),
-      }),
-    )
-    .min(1),
-  createdAt: treatmentDtoSchema.shape.createdAt.optional(),
+  medicaments: z.array(treatmentMedicamentDtoSchema).min(1),
 });
 
 export class TreatmentCreationDto extends createZodDto(

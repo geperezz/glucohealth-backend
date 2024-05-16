@@ -1,16 +1,18 @@
 import {
   integer,
   pgTable,
-  primaryKey,
-  text,
+  serial,
   timestamp,
+  unique,
 } from 'drizzle-orm/pg-core';
 import { treatmentTable } from '../treatment.table';
 import { medicamentTable } from 'src/medicament/medicament.table';
+import { sql } from 'drizzle-orm';
 
 export const treatmentMedicamentTable = pgTable(
-  'treatment_medicaments',
+  'treatments_medicaments',
   {
+    id: serial('id').primaryKey(),
     treatmentId: integer('treatment_id')
       .references(() => treatmentTable.id, {
         onUpdate: 'cascade',
@@ -23,17 +25,23 @@ export const treatmentMedicamentTable = pgTable(
         onDelete: 'restrict',
       })
       .notNull(),
-    takingSchedule: text('taking_schedule').notNull(),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
+    takingSchedulesStartingTimestamp: timestamp(
+      'taking_schedule_starting_timestamp',
+    ).notNull(),
+    takingSchedulesEndingTimestamp: timestamp(
+      'taking_schedule_ending_timestamp',
+    ).default(sql`NULL`),
+    deletedAt: timestamp('deleted_at').default(sql`NULL`),
   },
   (treatmentMedicamentTable) => {
     return {
-      primaryKey: primaryKey({
-        columns: [
+      natural_primary_key: unique('treatment_medicament_natural_primary_key')
+        .on(
           treatmentMedicamentTable.treatmentId,
           treatmentMedicamentTable.medicamentId,
-        ],
-      }),
+          treatmentMedicamentTable.deletedAt,
+        )
+        .nullsNotDistinct(),
     };
   },
 );
