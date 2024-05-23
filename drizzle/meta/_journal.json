@@ -57,6 +57,20 @@
       "when": 1715824443325,
       "tag": "0007_slim_stardust",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1716415262130,
+      "tag": "0008_flat_imperial_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1716419846079,
+      "tag": "0009_stormy_bullseye",
+      "breakpoints": true
     }
   ]
 }

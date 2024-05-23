@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { SQL, and, count, eq, sql } from 'drizzle-orm';
+import { SQL, and, count, eq, isNull } from 'drizzle-orm';
 import { DateTime } from 'luxon';
 
 import { DrizzleClient, DrizzleTransaction } from 'src/drizzle/drizzle.client';
@@ -70,10 +70,14 @@ export class FilterByTreatmentMedicamentFields extends TreatmentMedicamentFilter
       ...Object.entries(filters)
         .filter(([, fieldValue]) => fieldValue !== undefined)
         .map(([fieldName, fieldValue]) =>
-          eq(
-            treatmentMedicamentTable[fieldName as keyof typeof filters],
-            fieldValue !== null ? fieldValue : sql`NULL`,
-          ),
+          fieldValue !== null
+            ? eq(
+                treatmentMedicamentTable[fieldName as keyof typeof filters],
+                fieldValue,
+              )
+            : isNull(
+                treatmentMedicamentTable[fieldName as keyof typeof filters],
+              ),
         ),
     );
   }
@@ -163,7 +167,7 @@ export class TreatmentMedicamentRepository {
             and(
               ...filters.map(
                 (filter) => filter.toSql(transaction),
-                eq(treatmentMedicamentTable.deletedAt, sql`NULL`),
+                isNull(treatmentMedicamentTable.deletedAt),
               ),
             ),
           )
@@ -219,7 +223,7 @@ export class TreatmentMedicamentRepository {
           .where(
             and(
               ...filters.map((filter) => filter.toSql(transaction)),
-              eq(treatmentMedicamentTable.deletedAt, sql`NULL`),
+              isNull(treatmentMedicamentTable.deletedAt),
             ),
           );
         return await Promise.all(
@@ -250,7 +254,7 @@ export class TreatmentMedicamentRepository {
             and(
               ...filters.map((filter) => filter.toSql(transaction)),
               treatmentMedicamentUniqueTrait.toSql(),
-              eq(treatmentMedicamentTable.deletedAt, sql`NULL`),
+              isNull(treatmentMedicamentTable.deletedAt),
             ),
           );
         if (!treatmentMedicament) {
@@ -294,7 +298,7 @@ export class TreatmentMedicamentRepository {
           .where(
             and(
               treatmentMedicamentUniqueTrait.toSql(),
-              eq(treatmentMedicamentTable.deletedAt, sql`NULL`),
+              isNull(treatmentMedicamentTable.deletedAt),
             ),
           )
           .returning({ id: treatmentMedicamentTable.id });
@@ -340,7 +344,7 @@ export class TreatmentMedicamentRepository {
           .where(
             and(
               ...filters.map((filter) => filter.toSql(transaction)),
-              eq(treatmentMedicamentTable.deletedAt, sql`NULL`),
+              isNull(treatmentMedicamentTable.deletedAt),
             ),
           );
 
@@ -367,7 +371,7 @@ export class TreatmentMedicamentRepository {
         await transaction
           .update(treatmentMedicamentTable)
           .set({ deletedAt: new Date(DateTime.now().toISO()) })
-          .where(eq(treatmentMedicamentTable.deletedAt, sql`NULL`));
+          .where(isNull(treatmentMedicamentTable.deletedAt));
 
         return treatmentMedicament;
       },

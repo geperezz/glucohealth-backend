@@ -18,12 +18,15 @@ import {
   FilterByTreatmentFields,
   Treatment,
   TreatmentRepository,
+  TreatmentUniqueTrait,
 } from 'src/treatment/treatment.repository';
+import { DateTime } from 'luxon';
 
 export type Patient = Omit<User, 'role'> &
   Omit<typeof patientTable.$inferSelect, 'id'> & {
     bmi: number | null;
-    treatments: Omit<Treatment, 'patientId'>[];
+    age: number | null;
+    treatment: Omit<Treatment, 'patientId'>;
   };
 export type PatientCreation = Omit<UserCreation, 'role' | 'password'> &
   Omit<typeof patientTable.$inferInsert, 'id'> & {
@@ -58,8 +61,8 @@ export class FilterByPatientFields extends PatientFilter {
           .from(patientTable)
           .where(
             and(
-              this.expectedPatient.age
-                ? eq(patientTable.age, this.expectedPatient.age)
+              this.expectedPatient.birthdate
+                ? eq(patientTable.birthdate, this.expectedPatient.birthdate)
                 : undefined,
               this.expectedPatient.weightInKg
                 ? eq(patientTable.weightInKg, this.expectedPatient.weightInKg)
@@ -105,7 +108,12 @@ export class PatientRepository {
           })
           .returning();
 
-        return this.buildPatientEntity(user, patient, []);
+        const treatment = await this.treatmentRepository.create(
+          { patientId: patient.id, medicaments: [] },
+          transaction,
+        );
+
+        return this.buildPatientEntity(user, patient, treatment);
       },
     );
   }
@@ -157,11 +165,12 @@ export class PatientRepository {
           .from(patientTable)
           .where(eq(patientTable.id, user.id));
 
-        const treatments = await this.treatmentRepository.findAll([
-          new FilterByTreatmentFields({ patientId: patient.id }),
-        ]);
+        const [treatment] = await this.treatmentRepository.findAll(
+          [new FilterByTreatmentFields({ patientId: patient.id })],
+          transaction,
+        );
 
-        return this.buildPatientEntity(user, patient, treatments);
+        return this.buildPatientEntity(user, patient, treatment);
       },
     );
   }
@@ -169,7 +178,7 @@ export class PatientRepository {
   private buildPatientEntity(
     user: User,
     rawPatient: typeof patientTable.$inferSelect,
-    treatments: Treatment[],
+    treatment: Treatment,
   ): Patient {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { role, ...userWithoutRole } = user;
@@ -177,11 +186,16 @@ export class PatientRepository {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...rawPatientWithoutId } = rawPatient;
 
-    const treatmentsWithoutPatientId = treatments.map(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      ({ patientId, ...treatmentWithoutPatientId }) =>
-        treatmentWithoutPatientId,
-    );
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { patientId, ...treatmentWithoutPatientId } = treatment;
+
+    const age = rawPatient.birthdate
+      ? Math.floor(
+          DateTime.now()
+            .diff(DateTime.fromJSDate(rawPatient.birthdate), 'years')
+            .toObject().years!,
+        )
+      : null;
 
     const bmi =
       rawPatient.weightInKg && rawPatient.heightInCm
@@ -191,7 +205,8 @@ export class PatientRepository {
     return {
       ...userWithoutRole,
       ...rawPatientWithoutId,
-      treatments: treatmentsWithoutPatientId,
+      treatment: treatmentWithoutPatientId,
+      age,
       bmi,
     };
   }
@@ -237,6 +252,9 @@ export class PatientRepository {
           throw new PatientNotFoundError();
         }
 
+        await this.treatmentRepository.delete(
+          new TreatmentUniqueTrait(patient.treatment.id),
+        );
         await transaction
           .delete(patientTable)
           .where(eq(patientTable.id, patient.id));

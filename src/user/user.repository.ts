@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { SQL, and, count, eq, sql } from 'drizzle-orm';
+import { SQL, and, count, eq, isNull } from 'drizzle-orm';
 import * as generator from 'generate-password';
 import * as bcrypt from 'bcrypt';
 
@@ -52,10 +52,9 @@ export class FilterByUserFields extends UserFilter {
       ...Object.entries(this.expectedUser)
         .filter(([, fieldValue]) => fieldValue !== undefined)
         .map(([fieldName, fieldValue]) =>
-          eq(
-            userTable[fieldName as keyof User],
-            fieldValue !== null ? fieldValue : sql`NULL`,
-          ),
+          fieldValue !== null
+            ? eq(userTable[fieldName as keyof User], fieldValue)
+            : isNull(userTable[fieldName as keyof User]),
         ),
     );
   }

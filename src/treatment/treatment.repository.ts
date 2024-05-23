@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { SQL, and, count, eq, sql } from 'drizzle-orm';
+import { SQL, and, count, eq, isNull } from 'drizzle-orm';
 import { DateTime } from 'luxon';
 
 import { DrizzleClient, DrizzleTransaction } from 'src/drizzle/drizzle.client';
@@ -25,7 +25,7 @@ export type TreatmentCreation = Omit<
 > & {
   medicaments: Omit<TreatmentMedicamentCreation, 'treatmentId'>[];
 };
-export type TreatmentReplacement = TreatmentCreation;
+export type TreatmentReplacement = Omit<TreatmentCreation, 'patientId'>;
 
 export class TreatmentNotFoundError extends Error {}
 
@@ -117,7 +117,7 @@ export class TreatmentRepository {
           .where(
             and(
               ...filters.map((filter) => filter.toSql(transaction)),
-              eq(treatmentTable.deletedAt, sql`NULL`),
+              isNull(treatmentTable.deletedAt),
             ),
           )
           .as('filtered_treatments');
@@ -170,7 +170,7 @@ export class TreatmentRepository {
           .where(
             and(
               ...filters.map((filter) => filter.toSql(transaction)),
-              eq(treatmentTable.deletedAt, sql`NULL`),
+              isNull(treatmentTable.deletedAt),
             ),
           );
 
@@ -204,7 +204,7 @@ export class TreatmentRepository {
             and(
               ...filters.map((filter) => filter.toSql(transaction)),
               treatmentUniqueTrait.toSql(),
-              eq(treatmentTable.deletedAt, sql`NULL`),
+              isNull(treatmentTable.deletedAt),
             ),
           );
         if (!treatment) {
@@ -241,10 +241,7 @@ export class TreatmentRepository {
           .update(treatmentTable)
           .set(treatmentReplacement)
           .where(
-            and(
-              treatmentUniqueTrait.toSql(),
-              eq(treatmentTable.deletedAt, sql`NULL`),
-            ),
+            and(treatmentUniqueTrait.toSql(), isNull(treatmentTable.deletedAt)),
           )
           .returning();
 

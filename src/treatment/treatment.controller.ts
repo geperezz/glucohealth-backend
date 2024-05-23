@@ -1,10 +1,8 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   NotFoundException,
-  Post,
   Put,
   Query,
 } from '@nestjs/common';
@@ -15,7 +13,6 @@ import {
   TreatmentNotFoundError,
   TreatmentRepository,
 } from './treatment.repository';
-import { TreatmentCreationDto } from './dtos/treatment-creation.dto';
 import { TreatmentDto } from './dtos/treatment.dto';
 import { TreatmentReplacementDto } from './dtos/treatment-replacement.dto';
 import { TreatmentFiltersDto } from './dtos/treatment-filters.dto';
@@ -29,15 +26,6 @@ import { MustBeLoggedInAs } from 'src/auth/must-be-logged-in-as.decorator';
 @MustBeLoggedInAs('admin', 'nurse')
 export class TreatmentController {
   constructor(private readonly treatmentRepository: TreatmentRepository) {}
-
-  @Post('/treatments/')
-  async create(
-    @Body() treatmentCreationDto: TreatmentCreationDto,
-  ): Promise<TreatmentDto> {
-    const treatment =
-      await this.treatmentRepository.create(treatmentCreationDto);
-    return TreatmentDto.fromModel(treatment);
-  }
 
   @Get('/treatments/')
   async findPage(
@@ -80,26 +68,6 @@ export class TreatmentController {
       const treatment = await this.treatmentRepository.replace(
         TreatmentUniqueTraitDto.toModel(treatmentUniqueTraitDto),
         treatmentReplacementDto,
-      );
-      return TreatmentDto.fromModel(treatment);
-    } catch (error) {
-      if (error instanceof TreatmentNotFoundError) {
-        throw new NotFoundException('Treatment not found', {
-          description: `There is no treatment which complies with the given constraints`,
-          cause: error,
-        });
-      }
-      throw error;
-    }
-  }
-
-  @Delete('/treatments/')
-  async delete(
-    @Query() treatmentUniqueTraitDto: TreatmentUniqueTraitDto,
-  ): Promise<TreatmentDto> {
-    try {
-      const treatment = await this.treatmentRepository.delete(
-        TreatmentUniqueTraitDto.toModel(treatmentUniqueTraitDto),
       );
       return TreatmentDto.fromModel(treatment);
     } catch (error) {

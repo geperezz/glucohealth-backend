@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, eq, sql } from 'drizzle-orm';
+import { and, count, eq, isNull } from 'drizzle-orm';
 
 import { DrizzleClient, DrizzleTransaction } from 'src/drizzle/drizzle.client';
 import { medicamentTable } from './medicament.table';
@@ -100,10 +100,14 @@ export class MedicamentRepository {
               ...Object.entries(filters)
                 .filter(([, fieldValue]) => fieldValue !== undefined)
                 .map(([fieldName, fieldValue]) =>
-                  eq(
-                    medicamentTable[fieldName as keyof typeof filters],
-                    fieldValue !== null ? fieldValue : sql`NULL`,
-                  ),
+                  fieldValue !== null
+                    ? eq(
+                        medicamentTable[fieldName as keyof typeof filters],
+                        fieldValue,
+                      )
+                    : isNull(
+                        medicamentTable[fieldName as keyof typeof filters],
+                      ),
                 ),
             ),
           )
@@ -148,10 +152,12 @@ export class MedicamentRepository {
       return eq(medicamentTable.id, medicamentUniqueTrait.id);
     }
     return and(
-      eq(
-        medicamentTable.tradeName,
-        medicamentUniqueTrait.tradeName_genericName!.tradeName ?? sql`NULL`,
-      ),
+      medicamentUniqueTrait.tradeName_genericName!.tradeName !== null
+        ? eq(
+            medicamentTable.tradeName,
+            medicamentUniqueTrait.tradeName_genericName!.tradeName,
+          )
+        : isNull(medicamentTable.tradeName),
       eq(
         medicamentTable.genericName,
         medicamentUniqueTrait.tradeName_genericName!.genericName,

@@ -8,7 +8,7 @@ import { treatmentMedicamentDtoSchema } from '../treatment-medicament/dtos/treat
 export const treatmentDtoSchema = z.object({
   id: z.coerce.number().int(),
   patientId: z.coerce.number().int(),
-  medicaments: z.array(treatmentMedicamentDtoSchema).min(1),
+  medicaments: z.array(treatmentMedicamentDtoSchema),
 });
 
 export class TreatmentDto extends createZodDto(treatmentDtoSchema) {
