@@ -1,7 +1,16 @@
+import { Inject, Injectable } from '@nestjs/common';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 
-import { drizzleClient } from './drizzle.client';
+import { DrizzleClient } from './drizzle.client';
 
-export async function applyMigrations(): Promise<void> {
-  await migrate(drizzleClient, { migrationsFolder: 'drizzle' });
+@Injectable()
+export class DrizzleMigrator {
+  constructor(
+    @Inject('DRIZZLE_CLIENT')
+    private readonly drizzleClient: DrizzleClient,
+  ) {}
+
+  async applyMigrations(): Promise<void> {
+    await migrate(this.drizzleClient, { migrationsFolder: 'drizzle' });
+  }
 }
