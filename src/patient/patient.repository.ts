@@ -123,7 +123,7 @@ export class PatientRepository {
             subject: `Registro GlucoHealth`,
             template: './signup',
             context: {
-              name: user.fullName,
+              name: 'Paciente',
               role: 'paciente',
               email: user.email,
               password: user.password,
