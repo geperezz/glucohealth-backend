@@ -62,7 +62,7 @@ export class NurseRepository {
               name: user.fullName,
               role: 'enfermero/a',
               email: user.email,
-              password: nurseCreation.password,
+              password: user.password,
             },
           });
         } catch (error) {

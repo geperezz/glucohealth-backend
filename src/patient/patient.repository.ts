@@ -126,7 +126,7 @@ export class PatientRepository {
               name: user.fullName,
               role: 'paciente',
               email: user.email,
-              password: patientCreation.password,
+              password: user.password,
             },
           });
         } catch (error) {
