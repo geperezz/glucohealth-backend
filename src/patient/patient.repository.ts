@@ -14,11 +14,23 @@ import {
   UserRepository,
   UserUniqueTrait,
 } from 'src/user/user.repository';
+import {
+  FilterByTreatmentFields,
+  Treatment,
+  TreatmentRepository,
+  TreatmentUniqueTrait,
+} from 'src/treatment/treatment.repository';
+import { DateTime } from 'luxon';
 
 import { MailerService } from '@nestjs-modules/mailer';
+import { MailNotSentError } from 'src/nurse/nurse.repository';
 
 export type Patient = Omit<User, 'role'> &
-  Omit<typeof patientTable.$inferSelect, 'id'>;
+  Omit<typeof patientTable.$inferSelect, 'id'> & {
+    bmi: number | null;
+    age: number | null;
+    treatment: Omit<Treatment, 'patientId'>;
+  };
 export type PatientCreation = Omit<UserCreation, 'role' | 'password'> &
   Omit<typeof patientTable.$inferInsert, 'id'> & {
     password?: (typeof userTable.$inferInsert)['password'];
@@ -52,8 +64,8 @@ export class FilterByPatientFields extends PatientFilter {
           .from(patientTable)
           .where(
             and(
-              this.expectedPatient.age
-                ? eq(patientTable.age, this.expectedPatient.age)
+              this.expectedPatient.birthdate
+                ? eq(patientTable.birthdate, this.expectedPatient.birthdate)
                 : undefined,
               this.expectedPatient.weightInKg
                 ? eq(patientTable.weightInKg, this.expectedPatient.weightInKg)
@@ -75,6 +87,7 @@ export class PatientRepository {
     private readonly drizzleClient: DrizzleClient,
     private readonly userRepository: UserRepository,
     private readonly mailerService: MailerService,
+    private readonly treatmentRepository: TreatmentRepository,
   ) {}
 
   async create(
@@ -99,6 +112,11 @@ export class PatientRepository {
           })
           .returning();
 
+        const treatment = await this.treatmentRepository.create(
+          { patientId: patient.id, medicaments: [] },
+          transaction,
+        );
+
         try {
           await this.mailerService.sendMail({
             to: user.email,
@@ -112,12 +130,10 @@ export class PatientRepository {
             },
           });
         } catch (error) {
-          throw new Error(
-            'An unexpected situation ocurred while sending the email',
-          );
+          throw new MailNotSentError(undefined, { cause: error });
         }
 
-        return this.buildPatientEntity(user, patient);
+        return this.buildPatientEntity(user, patient, treatment);
       },
     );
   }
@@ -169,9 +185,50 @@ export class PatientRepository {
           .from(patientTable)
           .where(eq(patientTable.id, user.id));
 
-        return this.buildPatientEntity(user, patient);
+        const [treatment] = await this.treatmentRepository.findAll(
+          [new FilterByTreatmentFields({ patientId: patient.id })],
+          transaction,
+        );
+
+        return this.buildPatientEntity(user, patient, treatment);
       },
     );
+  }
+
+  private buildPatientEntity(
+    user: User,
+    rawPatient: typeof patientTable.$inferSelect,
+    treatment: Treatment,
+  ): Patient {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { role, ...userWithoutRole } = user;
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, ...rawPatientWithoutId } = rawPatient;
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { patientId, ...treatmentWithoutPatientId } = treatment;
+
+    const age = rawPatient.birthdate
+      ? Math.floor(
+          DateTime.now()
+            .diff(DateTime.fromJSDate(rawPatient.birthdate), 'years')
+            .toObject().years!,
+        )
+      : null;
+
+    const bmi =
+      rawPatient.weightInKg && rawPatient.heightInCm
+        ? rawPatient.weightInKg / Math.pow(rawPatient.heightInCm / 100, 2)
+        : null;
+
+    return {
+      ...userWithoutRole,
+      ...rawPatientWithoutId,
+      treatment: treatmentWithoutPatientId,
+      age,
+      bmi,
+    };
   }
 
   async replace(
@@ -194,31 +251,14 @@ export class PatientRepository {
           transaction,
         );
 
-        const [patient] = await transaction
+        await transaction
           .update(patientTable)
           .set(patientReplacement)
-          .where(eq(patientTable.id, user.id))
-          .returning();
+          .where(eq(patientTable.id, user.id));
 
-        return this.buildPatientEntity(user, patient);
+        return (await this.findOne(PatientUniqueTrait.fromId(user.id)))!;
       },
     );
-  }
-
-  private buildPatientEntity(
-    user: User,
-    rawPatient: typeof patientTable.$inferSelect,
-  ): Patient {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { role, ...userWithoutRole } = user;
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, ...rawPatientWithoutId } = rawPatient;
-
-    return {
-      ...userWithoutRole,
-      ...rawPatientWithoutId,
-    };
   }
 
   async delete(
@@ -232,6 +272,9 @@ export class PatientRepository {
           throw new PatientNotFoundError();
         }
 
+        await this.treatmentRepository.delete(
+          new TreatmentUniqueTrait(patient.treatment.id),
+        );
         await transaction
           .delete(patientTable)
           .where(eq(patientTable.id, patient.id));

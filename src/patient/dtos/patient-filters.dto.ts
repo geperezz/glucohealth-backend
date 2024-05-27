@@ -3,7 +3,9 @@ import { z } from 'nestjs-zod/z';
 
 import { patientDtoSchema } from './patient.dto';
 
-export const patientFiltersDtoSchema = patientDtoSchema.partial();
+export const patientFiltersDtoSchema = patientDtoSchema
+  .omit({ treatment: true })
+  .partial();
 
 export class PatientFiltersDto extends createZodDto(patientFiltersDtoSchema) {
   id?: z.infer<typeof patientFiltersDtoSchema>['id'] = super.id;
@@ -14,7 +16,8 @@ export class PatientFiltersDto extends createZodDto(patientFiltersDtoSchema) {
     .phoneNumber;
   nationalId?: z.infer<typeof patientFiltersDtoSchema>['nationalId'] = super
     .nationalId;
-  age?: z.infer<typeof patientFiltersDtoSchema>['age'] = super.age;
+  birthdate?: z.infer<typeof patientFiltersDtoSchema>['birthdate'] = super
+    .birthdate;
   weightInKg?: z.infer<typeof patientFiltersDtoSchema>['weightInKg'] = super
     .weightInKg;
   heightInCm?: z.infer<typeof patientFiltersDtoSchema>['heightInCm'] = super

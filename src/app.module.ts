@@ -12,6 +12,7 @@ import { UserModule } from './user/user.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { join } from 'path';
+import { TreatmentModule } from './treatment/treatment.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { join } from 'path';
         },
       }),
     }),
+    TreatmentModule,
   ],
   providers: [
     {

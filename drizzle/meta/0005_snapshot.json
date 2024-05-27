@@ -1,0 +1,442 @@
+{
+  "id": "82a44d08-4d25-4dab-8a23-3eca15a4a54b",
+  "prevId": "43e5ca43-9bc6-4e10-8873-df8d1bf31157",
+  "version": "6",
+  "dialect": "postgresql",
+  "tables": {
+    "public.medicaments_presentations": {
+      "name": "medicaments_presentations",
+      "schema": "",
+      "columns": {
+        "medicament_id": {
+          "name": "medicament_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "presentation": {
+          "name": "presentation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "medicaments_presentations_medicament_id_medicaments_id_fk": {
+          "name": "medicaments_presentations_medicament_id_medicaments_id_fk",
+          "tableFrom": "medicaments_presentations",
+          "tableTo": "medicaments",
+          "columnsFrom": [
+            "medicament_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "medicaments_presentations_medicament_id_presentation_pk": {
+          "name": "medicaments_presentations_medicament_id_presentation_pk",
+          "columns": [
+            "medicament_id",
+            "presentation"
+          ]
+        }
+      },
+      "uniqueConstraints": {}
+    },
+    "public.medicaments_side_effects": {
+      "name": "medicaments_side_effects",
+      "schema": "",
+      "columns": {
+        "medicament_id": {
+          "name": "medicament_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "side_effect": {
+          "name": "side_effect",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "medicaments_side_effects_medicament_id_medicaments_id_fk": {
+          "name": "medicaments_side_effects_medicament_id_medicaments_id_fk",
+          "tableFrom": "medicaments_side_effects",
+          "tableTo": "medicaments",
+          "columnsFrom": [
+            "medicament_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "medicaments_side_effects_medicament_id_side_effect_pk": {
+          "name": "medicaments_side_effects_medicament_id_side_effect_pk",
+          "columns": [
+            "medicament_id",
+            "side_effect"
+          ]
+        }
+      },
+      "uniqueConstraints": {}
+    },
+    "public.medicaments": {
+      "name": "medicaments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tradeName": {
+          "name": "tradeName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "genericName": {
+          "name": "genericName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "medicaments_tradeName_genericName_unique": {
+          "name": "medicaments_tradeName_genericName_unique",
+          "nullsNotDistinct": true,
+          "columns": [
+            "tradeName",
+            "genericName"
+          ]
+        }
+      }
+    },
+    "public.patients": {
+      "name": "patients",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "age": {
+          "name": "age",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "weight_in_kg": {
+          "name": "weight_in_kg",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "height_in_cm": {
+          "name": "height_in_cm",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "patients_id_users_id_fk": {
+          "name": "patients_id_users_id_fk",
+          "tableFrom": "patients",
+          "tableTo": "users",
+          "columnsFrom": [
+            "id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.treatment_medicaments": {
+      "name": "treatment_medicaments",
+      "schema": "",
+      "columns": {
+        "treatment_id": {
+          "name": "treatment_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "medicament_id": {
+          "name": "medicament_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "taking_schedule": {
+          "name": "taking_schedule",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "treatment_medicaments_treatment_id_treatments_id_fk": {
+          "name": "treatment_medicaments_treatment_id_treatments_id_fk",
+          "tableFrom": "treatment_medicaments",
+          "tableTo": "treatments",
+          "columnsFrom": [
+            "treatment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "treatment_medicaments_medicament_id_medicaments_id_fk": {
+          "name": "treatment_medicaments_medicament_id_medicaments_id_fk",
+          "tableFrom": "treatment_medicaments",
+          "tableTo": "medicaments",
+          "columnsFrom": [
+            "medicament_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "treatment_medicaments_treatment_id_medicament_id_pk": {
+          "name": "treatment_medicaments_treatment_id_medicament_id_pk",
+          "columns": [
+            "treatment_id",
+            "medicament_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {}
+    },
+    "public.treatment_nurses": {
+      "name": "treatment_nurses",
+      "schema": "",
+      "columns": {
+        "treatment_id": {
+          "name": "treatment_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nurse_id": {
+          "name": "nurse_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "treatment_nurses_treatment_id_treatments_id_fk": {
+          "name": "treatment_nurses_treatment_id_treatments_id_fk",
+          "tableFrom": "treatment_nurses",
+          "tableTo": "treatments",
+          "columnsFrom": [
+            "treatment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "treatment_nurses_nurse_id_users_id_fk": {
+          "name": "treatment_nurses_nurse_id_users_id_fk",
+          "tableFrom": "treatment_nurses",
+          "tableTo": "users",
+          "columnsFrom": [
+            "nurse_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "treatment_nurses_treatment_id_nurse_id_pk": {
+          "name": "treatment_nurses_treatment_id_nurse_id_pk",
+          "columns": [
+            "treatment_id",
+            "nurse_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {}
+    },
+    "public.treatments": {
+      "name": "treatments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "patient_id": {
+          "name": "patient_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "treatments_patient_id_patients_id_fk": {
+          "name": "treatments_patient_id_patients_id_fk",
+          "tableFrom": "treatments",
+          "tableTo": "patients",
+          "columnsFrom": [
+            "patient_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "full_name": {
+          "name": "full_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone_number": {
+          "name": "phone_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "national_id": {
+          "name": "national_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "user_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_email_unique": {
+          "name": "users_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        },
+        "users_national_id_unique": {
+          "name": "users_national_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "national_id"
+          ]
+        }
+      }
+    }
+  },
+  "enums": {
+    "public.user_role": {
+      "name": "user_role",
+      "schema": "public",
+      "values": [
+        "admin",
+        "nurse",
+        "patient"
+      ]
+    }
+  },
+  "schemas": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
