@@ -64,6 +64,13 @@ export class NurseRepository {
               email: user.email,
               password: user.password,
             },
+            attachments: [
+              {
+                filename: 'logo.png',
+                path: 'src/templates/assets/logo.png',
+                cid: 'logo',
+              },
+            ],
           });
         } catch (error) {
           throw new MailNotSentError(undefined, { cause: error });
