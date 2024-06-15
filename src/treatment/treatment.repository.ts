@@ -233,13 +233,21 @@ export class TreatmentRepository {
   ): Promise<Treatment> {
     return await (transaction ?? this.drizzleClient).transaction(
       async (transaction) => {
-        if (!(await this.findOne(treatmentUniqueTrait, [], transaction))) {
+        const currentTreatment = await this.findOne(
+          treatmentUniqueTrait,
+          [],
+          transaction,
+        );
+        if (!currentTreatment) {
           throw new TreatmentNotFoundError();
         }
 
-        const [treatment] = await transaction
+        const [newTreatment] = await transaction
           .update(treatmentTable)
-          .set(treatmentReplacement)
+          .set({
+            ...treatmentReplacement,
+            id: treatmentReplacement.id ?? currentTreatment.id,
+          })
           .where(
             and(treatmentUniqueTrait.toSql(), isNull(treatmentTable.deletedAt)),
           )
@@ -248,7 +256,7 @@ export class TreatmentRepository {
         await this.treatmentMedicamentRepository.deleteMany(
           [
             new FilterByTreatmentMedicamentFields({
-              treatmentId: treatment.id,
+              treatmentId: newTreatment.id,
             }),
           ],
           transaction,
@@ -257,12 +265,12 @@ export class TreatmentRepository {
           await this.treatmentMedicamentRepository.createMany(
             treatmentReplacement.medicaments.map((treatmentMedicament) => ({
               ...treatmentMedicament,
-              treatmentId: treatment.id,
+              treatmentId: newTreatment.id,
             })),
             transaction,
           );
 
-        return this.buildTreatment(treatment, treatmentMedicaments);
+        return this.buildTreatment(newTreatment, treatmentMedicaments);
       },
     );
   }
