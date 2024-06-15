@@ -135,6 +135,20 @@ export class PatientMedicamentTakenRepository {
     );
   }
 
+  async findAll(
+    filters: PatientMedicamentTakenFilter[] = [],
+    transaction?: DrizzleTransaction,
+  ): Promise<PatientMedicamentTaken[]> {
+    return await (transaction ?? this.drizzleClient).transaction(
+      async (transaction) => {
+        return await transaction
+          .select()
+          .from(patientMedicamentTakenTable)
+          .where(and(...filters.map((filter) => filter.toSql(transaction))));
+      },
+    );
+  }
+
   async findOne(
     patientMedicamentTakenUniqueTrait: PatientMedicamentTakenUniqueTrait,
     filters: PatientMedicamentTakenFilter[] = [],
