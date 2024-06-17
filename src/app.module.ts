@@ -12,6 +12,7 @@ import { join } from 'path';
 import { TreatmentModule } from './treatment/treatment.module';
 import { SuccessfulResponseBuilderModule } from './successful-response-builder/succesful-response-builder.module';
 import { ConfigModule } from './config/config.module';
+import { PushNotificationsModule } from './push-notifications/push-notifications.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { ConfigModule } from './config/config.module';
       }),
     }),
     TreatmentModule,
+    PushNotificationsModule,
   ],
 })
 export class AppModule {}

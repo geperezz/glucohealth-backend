@@ -8,6 +8,7 @@ import { TreatmentMedicament } from '../treatment-medicament.repository';
 
 export const treatmentMedicamentDtoSchema = z.object({
   medicamentId: medicamentDtoSchema.shape.id,
+  dose: z.string().trim().min(1),
   takingSchedulesStartingTimestamp: z.coerce.date(),
   takingSchedulesEndingTimestamp: z.coerce.date().optional(),
   takingSchedules: z

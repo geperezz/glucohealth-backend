@@ -2,6 +2,7 @@ import {
   integer,
   pgTable,
   serial,
+  text,
   timestamp,
   unique,
 } from 'drizzle-orm/pg-core';
@@ -25,6 +26,7 @@ export const treatmentMedicamentTable = pgTable(
         onDelete: 'restrict',
       })
       .notNull(),
+    dose: text('dose').notNull(),
     takingSchedulesStartingTimestamp: timestamp(
       'taking_schedule_starting_timestamp',
     ).notNull(),
