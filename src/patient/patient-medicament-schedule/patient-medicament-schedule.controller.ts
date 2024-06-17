@@ -17,24 +17,6 @@ export class PatientMedicamentScheduleController {
     private readonly patientMedicamentScheduleService: PatientMedicamentScheduleService,
   ) {}
 
-  @Get('/patients/:patientId/treatment/schedules/:scheduleDate/')
-  @MustBeLoggedInAs('admin', 'nurse')
-  async findOne(
-    @Param('patientId', new ValidationPipe(patientDtoSchema.shape.id))
-    patientId: number,
-    @Param('scheduleDate', new ValidationPipe(z.coerce.date()))
-    scheduleDate: Date,
-  ): Promise<PatientMedicamentScheduleDto[]> {
-    const schedule = await this.patientMedicamentScheduleService.findOne(
-      patientId,
-      scheduleDate,
-    );
-
-    return schedule.map((schedule) =>
-      PatientMedicamentScheduleDto.fromSchema(schedule),
-    );
-  }
-
   @Get('/patients/me/treatment/schedules/:scheduleDate/')
   @MustBeLoggedInAs('patient')
   async findMine(
@@ -45,6 +27,24 @@ export class PatientMedicamentScheduleController {
   ): Promise<PatientMedicamentScheduleDto[]> {
     const schedule = await this.patientMedicamentScheduleService.findOne(
       me.id,
+      scheduleDate,
+    );
+
+    return schedule.map((schedule) =>
+      PatientMedicamentScheduleDto.fromSchema(schedule),
+    );
+  }
+
+  @Get('/patients/:patientId/treatment/schedules/:scheduleDate/')
+  @MustBeLoggedInAs('admin', 'nurse')
+  async findOne(
+    @Param('patientId', new ValidationPipe(patientDtoSchema.shape.id))
+    patientId: number,
+    @Param('scheduleDate', new ValidationPipe(z.coerce.date()))
+    scheduleDate: Date,
+  ): Promise<PatientMedicamentScheduleDto[]> {
+    const schedule = await this.patientMedicamentScheduleService.findOne(
+      patientId,
       scheduleDate,
     );
 
