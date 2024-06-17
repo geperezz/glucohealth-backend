@@ -40,7 +40,7 @@ export class MedicamentController {
   }
 
   @Get('/medicaments/')
-  @MustBeLoggedInAs('nurse')
+  @MustBeLoggedInAs('nurse', 'patient')
   async findPage(
     @Query() paginationOptionsDto: PaginationOptionsDto,
     @Query() medicamentFiltersDto: MedicamentFiltersDto,
@@ -57,7 +57,7 @@ export class MedicamentController {
   }
 
   @Get('/medicament/')
-  @MustBeLoggedInAs('nurse')
+  @MustBeLoggedInAs('nurse', 'patient')
   async findOne(
     @Query() medicamentUniqueTraitDto: MedicamentUniqueTraitDto,
   ): Promise<MedicamentDto> {
