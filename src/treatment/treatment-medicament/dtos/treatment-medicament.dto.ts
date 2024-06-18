@@ -10,7 +10,7 @@ export const treatmentMedicamentDtoSchema = z.object({
   medicamentId: medicamentDtoSchema.shape.id,
   dose: z.string().trim().min(1),
   takingSchedulesStartingTimestamp: z.coerce.date(),
-  takingSchedulesEndingTimestamp: z.coerce.date().optional(),
+  takingSchedulesEndingTimestamp: z.coerce.date().nullable().default(null),
   takingSchedules: z
     .array(
       z.object({
