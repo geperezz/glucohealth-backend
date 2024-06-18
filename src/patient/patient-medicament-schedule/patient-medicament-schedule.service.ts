@@ -53,6 +53,10 @@ export class PatientMedicamentScheduleService {
 
             return {
               medicamentId: medicament.medicamentId,
+              dose: patient.treatment.medicaments.find(
+                (treatmentMedicament) =>
+                  treatmentMedicament.medicamentId === medicament.medicamentId,
+              )!.dose,
               schedule,
             };
           }),
