@@ -156,7 +156,11 @@ export class PatientRepository {
           items: await Promise.all(
             filteredUsersPage.items.map(
               async (user) =>
-                (await this.findOne(PatientUniqueTrait.fromId(user.id)))!,
+                (await this.findOne(
+                  PatientUniqueTrait.fromId(user.id),
+                  [],
+                  transaction,
+                ))!,
             ),
           ),
         };

@@ -37,28 +37,37 @@ export class PushNotificationsService {
 
   @Cron(CronExpression.EVERY_MINUTE)
   async sendPushNotifications(): Promise<void> {
-    return await this.drizzleClient.transaction(async (transaction) => {
-      let { pageIndex, pageCount } = await this.patientRepository.findPage(
-        new PaginationOptions(1, 1),
-        [],
-        transaction,
-      );
-      const now = new Date(Date.now());
+    try {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        console.log('');
+        console.log('Starting to send push notifications');
+        let { pageIndex, pageCount, items } =
+          await this.patientRepository.findPage(
+            new PaginationOptions(1, 20),
+            [],
+            transaction,
+          );
+        const now = new Date(Date.now());
 
-      while (pageIndex <= pageCount) {
-        const { items } = await this.patientRepository.findPage(
-          new PaginationOptions(pageIndex, pageCount),
-          [],
-          transaction,
-        );
+        do {
+          await Promise.all(
+            items.map(async (patient) => {
+              await this.sendPushNotificationTo(patient, now, transaction);
+            }),
+          );
 
-        await Promise.all(
-          items.map(async (patient) => {
-            await this.sendPushNotificationTo(patient, now, transaction);
-          }),
-        );
-      }
-    });
+          ({ items } = await this.patientRepository.findPage(
+            new PaginationOptions(++pageIndex, 20),
+            [],
+            transaction,
+          ));
+        } while (pageIndex <= pageCount);
+        console.log('Finished to send push notifications');
+      });
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
   }
 
   private async sendPushNotificationTo(
@@ -66,9 +75,10 @@ export class PushNotificationsService {
     now: Date,
     transaction: DrizzleTransaction,
   ): Promise<void> {
-    const [treatment] = (await this.treatmentRepository.findAll([
-      new FilterByTreatmentFields({ patientId: patient.id }),
-    ]))!;
+    const [treatment] = (await this.treatmentRepository.findAll(
+      [new FilterByTreatmentFields({ patientId: patient.id })],
+      transaction,
+    ))!;
     const schedule = await this.patientMedicamentScheduleService.findOne(
       patient.id,
       now,
@@ -92,9 +102,12 @@ export class PushNotificationsService {
           return;
         }
 
-        const medicament = (await this.medicamentRepository.findOne({
-          id: medicamentSchedule.medicamentId,
-        }))!;
+        const medicament = (await this.medicamentRepository.findOne(
+          {
+            id: medicamentSchedule.medicamentId,
+          },
+          transaction,
+        ))!;
         const treatmentMedicament = treatment.medicaments.find(
           (treatmentMedicament) =>
             treatmentMedicament.medicamentId === medicament.id,
@@ -111,6 +124,8 @@ export class PushNotificationsService {
           medicamentSchedule.medicamentId,
           medicamentTakingToBeNotified.expectedTakingTimestamp,
         );
+
+        console.log(`Push notification sent to ${patient.fullName}`);
       }),
     );
   }

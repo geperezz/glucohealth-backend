@@ -6,6 +6,7 @@ import { PatientModule } from 'src/patient/patient.module';
 import { PatientMedicamentScheduleModule } from 'src/patient/patient-medicament-schedule/patient-medicament-schedule.module';
 import { MedicamentModule } from 'src/medicament/medicament.module';
 import { TreatmentModule } from 'src/treatment/treatment.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { TreatmentModule } from 'src/treatment/treatment.module';
     PatientMedicamentScheduleModule,
     MedicamentModule,
     TreatmentModule,
+    ScheduleModule.forRoot(),
   ],
   providers: [PushNotificationsService],
 })
