@@ -8,7 +8,7 @@ export const patientMedicamentScheduleSchema = z.object({
   schedule: z.array(
     z.object({
       expectedTakingTimestamp: z.coerce.date(),
-      actualTakingTimestamp: z.coerce.date().nullable(),
+      actualTakingTimestamp: z.coerce.date().nullable().default(null),
     }),
   ),
 });
