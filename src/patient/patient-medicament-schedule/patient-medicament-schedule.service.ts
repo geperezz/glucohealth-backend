@@ -71,16 +71,27 @@ export class PatientMedicamentScheduleService {
     scheduleDate: Date,
     transaction: DrizzleTransaction,
   ) {
-    if (scheduleDate < medicament.takingSchedulesStartingTimestamp) {
-      return [];
-    }
-    if (
-      medicament.takingSchedulesEndingTimestamp &&
-      scheduleDate > medicament.takingSchedulesEndingTimestamp
-    ) {
+    scheduleDate.setHours(0, 0, 0, 0);
+
+    const takingSchedulesStartingTimestamp = new Date(
+      medicament.takingSchedulesStartingTimestamp,
+    );
+    takingSchedulesStartingTimestamp.setHours(0, 0, 0, 0);
+    if (scheduleDate < takingSchedulesStartingTimestamp) {
       return [];
     }
 
+    if (medicament.takingSchedulesEndingTimestamp) {
+      const takingSchedulesEndingTimestamp = new Date(
+        medicament.takingSchedulesStartingTimestamp,
+      );
+      takingSchedulesEndingTimestamp.setHours(0, 0, 0, 0);
+      if (scheduleDate > takingSchedulesEndingTimestamp) {
+        return [];
+      }
+    }
+
+    scheduleDate.setHours(23, 59, 59, 999);
     const schedule = await Promise.all(
       medicament.takingSchedules.map(async ({ takingSchedule }) => {
         const takings = cronParser.parseExpression(takingSchedule, {
@@ -91,16 +102,22 @@ export class PatientMedicamentScheduleService {
         const schedule = [];
         while (takings.hasNext()) {
           const currentTakingTimestamp = takings.next().toDate();
+
+          const currentTakingTimestampAtTheEndOfTheDay = new Date(
+            currentTakingTimestamp,
+          );
+          currentTakingTimestampAtTheEndOfTheDay.setHours(23, 59, 59, 999);
+
           if (
-            scheduleDate.toDateString() ===
-            currentTakingTimestamp.toDateString()
+            scheduleDate.getTime() ===
+            currentTakingTimestampAtTheEndOfTheDay.getTime()
           ) {
             schedule.push({
               expectedTakingTimestamp: currentTakingTimestamp,
               actualTakingTimestamp: await this.getActualTakingTimestamp(
                 patient,
                 medicament,
-                scheduleDate,
+                currentTakingTimestamp,
                 transaction,
               ),
             });
@@ -116,7 +133,7 @@ export class PatientMedicamentScheduleService {
   private async getActualTakingTimestamp(
     patient: Patient,
     medicament: Omit<TreatmentMedicament, 'treatmentId'>,
-    scheduleDate: Date,
+    expectedTakingTimestamp: Date,
     transaction: DrizzleTransaction,
   ): Promise<Date | null> {
     const allTakings = await this.patientMedicamentTakenRepositorry.findAll(
@@ -130,15 +147,14 @@ export class PatientMedicamentScheduleService {
     );
     const taking = allTakings.find((taking) => {
       const MILLISECONDS_IN_A_MINUTE = 60_000;
-
-      const takingTimestampPlus30Min = new Date(
+      const expectedTakingTimestampPlus30Min = new Date(
         taking.takingTimestamp.getUTCMilliseconds() +
           30 * MILLISECONDS_IN_A_MINUTE,
       );
 
       return (
-        taking.takingTimestamp <= scheduleDate &&
-        scheduleDate <= takingTimestampPlus30Min
+        expectedTakingTimestamp <= taking.takingTimestamp &&
+        taking.takingTimestamp <= expectedTakingTimestampPlus30Min
       );
     });
 

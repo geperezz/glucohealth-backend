@@ -9,8 +9,22 @@ import { TreatmentMedicament } from '../treatment-medicament.repository';
 export const treatmentMedicamentDtoSchema = z.object({
   medicamentId: medicamentDtoSchema.shape.id,
   dose: z.string().trim().min(1),
-  takingSchedulesStartingTimestamp: z.coerce.date(),
-  takingSchedulesEndingTimestamp: z.coerce.date().nullable().default(null),
+  takingSchedulesStartingTimestamp: z.coerce
+    .date()
+    .transform((takingSchedulesStartingTimestamp) => {
+      takingSchedulesStartingTimestamp.setHours(0, 0, 0);
+      return takingSchedulesStartingTimestamp;
+    }),
+  takingSchedulesEndingTimestamp: z.coerce
+    .date()
+    .nullable()
+    .default(null)
+    .transform((takingSchedulesEndingTimestamp) => {
+      if (takingSchedulesEndingTimestamp) {
+        takingSchedulesEndingTimestamp.setHours(0, 0, 0);
+      }
+      return takingSchedulesEndingTimestamp;
+    }),
   takingSchedules: z
     .array(
       z.object({
