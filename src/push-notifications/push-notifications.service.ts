@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import * as OneSignal from '@onesignal/node-onesignal';
+import { DateTime } from 'luxon';
 
 import { DrizzleClient, DrizzleTransaction } from 'src/drizzle/drizzle.client';
 import {
@@ -47,6 +48,7 @@ export class PushNotificationsService {
             [],
             transaction,
           );
+
         const now = new Date(Date.now());
 
         do {
@@ -139,11 +141,11 @@ export class PushNotificationsService {
         (medicamentTaking) => medicamentTaking.actualTakingTimestamp === null,
       )
       .find((medicamentTaking) => {
-        const MILLISECONDS_IN_A_MINUTE = 60_000;
-
         const expectedTakingTimestampPlus30Min = new Date(
-          medicamentTaking.expectedTakingTimestamp.getUTCMilliseconds() +
-            30 * MILLISECONDS_IN_A_MINUTE,
+          medicamentTaking.expectedTakingTimestamp,
+        );
+        expectedTakingTimestampPlus30Min.setMinutes(
+          medicamentTaking.expectedTakingTimestamp.getMinutes() + 30,
         );
 
         return (
@@ -189,9 +191,11 @@ export class PushNotificationsService {
     const pushNotification = new OneSignal.Notification();
     pushNotification.app_id = 'ede82b86-6db6-4985-8e4d-4f01dd961baf';
     pushNotification.headings = {
+      en: `It's time to take your dose of ${medicament.tradeName ?? medicament.genericName}`,
       es: `Ya es hora de consumir tu dósis de ${medicament.tradeName ?? medicament.genericName}`,
     };
     pushNotification.contents = {
+      en: `You have to take ${dose} of ${medicament.tradeName ?? medicament.genericName}`,
       es: `Te corresponde consumir ${dose} de ${medicament.tradeName ?? medicament.genericName}`,
     };
     pushNotification.include_aliases = {

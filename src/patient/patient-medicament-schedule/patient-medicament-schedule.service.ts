@@ -47,7 +47,7 @@ export class PatientMedicamentScheduleService {
             const schedule = await this.getScheduleDetails(
               patient,
               medicament,
-              scheduleDate,
+              new Date(scheduleDate),
               transaction,
             );
 
