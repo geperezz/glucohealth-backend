@@ -146,10 +146,11 @@ export class PatientMedicamentScheduleService {
       transaction,
     );
     const taking = allTakings.find((taking) => {
-      const MILLISECONDS_IN_A_MINUTE = 60_000;
       const expectedTakingTimestampPlus30Min = new Date(
-        taking.takingTimestamp.getUTCMilliseconds() +
-          30 * MILLISECONDS_IN_A_MINUTE,
+        expectedTakingTimestamp,
+      );
+      expectedTakingTimestampPlus30Min.setMinutes(
+        expectedTakingTimestamp.getMinutes() + 30,
       );
 
       return (
