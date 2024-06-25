@@ -31,37 +31,38 @@ export class PatientMedicamentScheduleService {
     scheduleDate: Date,
     transaction?: DrizzleTransaction,
   ): Promise<PatientMedicamentSchedule[]> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const patient = await this.patientRepository.findOne(
-          PatientUniqueTrait.fromId(patientId),
-          [],
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.findOne(patientId, scheduleDate, transaction);
+      });
+    }
+    const patient = await this.patientRepository.findOne(
+      PatientUniqueTrait.fromId(patientId),
+      [],
+      transaction,
+    );
+    if (!patient) {
+      throw new PatientNotFoundError();
+    }
+
+    return await Promise.all(
+      patient.treatment.medicaments.map(async (medicament) => {
+        const schedule = await this.getScheduleDetails(
+          patient,
+          medicament,
+          new Date(scheduleDate),
           transaction,
         );
-        if (!patient) {
-          throw new PatientNotFoundError();
-        }
 
-        return await Promise.all(
-          patient.treatment.medicaments.map(async (medicament) => {
-            const schedule = await this.getScheduleDetails(
-              patient,
-              medicament,
-              new Date(scheduleDate),
-              transaction,
-            );
-
-            return {
-              medicamentId: medicament.medicamentId,
-              dose: patient.treatment.medicaments.find(
-                (treatmentMedicament) =>
-                  treatmentMedicament.medicamentId === medicament.medicamentId,
-              )!.dose,
-              schedule,
-            };
-          }),
-        );
-      },
+        return {
+          medicamentId: medicament.medicamentId,
+          dose: patient.treatment.medicaments.find(
+            (treatmentMedicament) =>
+              treatmentMedicament.medicamentId === medicament.medicamentId,
+          )!.dose,
+          schedule,
+        };
+      }),
     );
   }
 

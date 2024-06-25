@@ -81,27 +81,26 @@ export class TreatmentRepository {
     treatmentCreation: TreatmentCreation,
     transaction?: DrizzleTransaction,
   ): Promise<Treatment> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const [treatment] = await transaction
-          .insert(treatmentTable)
-          .values(treatmentCreation)
-          .returning();
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.create(treatmentCreation, transaction);
+      });
+    }
+    const [treatment] = await transaction
+      .insert(treatmentTable)
+      .values(treatmentCreation)
+      .returning();
 
-        const treatmentMedicaments =
-          await this.treatmentMedicamentRepository.createMany(
-            treatmentCreation.medicaments.map(
-              (treatmentMedicamentCreation) => ({
-                ...treatmentMedicamentCreation,
-                treatmentId: treatment.id,
-              }),
-            ),
-            transaction,
-          );
+    const treatmentMedicaments =
+      await this.treatmentMedicamentRepository.createMany(
+        treatmentCreation.medicaments.map((treatmentMedicamentCreation) => ({
+          ...treatmentMedicamentCreation,
+          treatmentId: treatment.id,
+        })),
+        transaction,
+      );
 
-        return this.buildTreatment(treatment, treatmentMedicaments);
-      },
-    );
+    return this.buildTreatment(treatment, treatmentMedicaments);
   }
 
   async findPage(
@@ -109,85 +108,88 @@ export class TreatmentRepository {
     filters: TreatmentFilter[] = [],
     transaction?: DrizzleTransaction,
   ): Promise<Page<Treatment>> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const filteredTreatmentsQuery = transaction
-          .select()
-          .from(treatmentTable)
-          .where(
-            and(
-              ...filters.map((filter) => filter.toSql(transaction)),
-              isNull(treatmentTable.deletedAt),
-            ),
-          )
-          .as('filtered_treatments');
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.findPage(paginationOptions, filters, transaction);
+      });
+    }
+    const filteredTreatmentsQuery = transaction
+      .select()
+      .from(treatmentTable)
+      .where(
+        and(
+          ...filters.map((filter) => filter.toSql(transaction)),
+          isNull(treatmentTable.deletedAt),
+        ),
+      )
+      .as('filtered_treatments');
 
-        const filteredRawTreatmentsPage = await transaction
-          .select({ id: filteredTreatmentsQuery.id })
-          .from(filteredTreatmentsQuery)
-          .offset(
-            (paginationOptions.pageIndex - 1) * paginationOptions.itemsPerPage,
-          )
-          .limit(paginationOptions.itemsPerPage);
-        const filteredTreatmentsPage = await Promise.all(
-          filteredRawTreatmentsPage.map(
-            async (rawTreatment) =>
-              (await this.findOne(
-                new TreatmentUniqueTrait(rawTreatment.id),
-                [],
-                transaction,
-              ))!,
-          ),
-        );
-
-        const [{ filteredTreatmentsCount }] = await transaction
-          .select({
-            filteredTreatmentsCount: count(filteredTreatmentsQuery.id),
-          })
-          .from(filteredTreatmentsQuery);
-
-        return {
-          items: filteredTreatmentsPage,
-          ...paginationOptions,
-          pageCount: Math.ceil(
-            filteredTreatmentsCount / paginationOptions.itemsPerPage,
-          ),
-          itemCount: filteredTreatmentsCount,
-        };
-      },
+    const filteredRawTreatmentsPage = await transaction
+      .select({ id: filteredTreatmentsQuery.id })
+      .from(filteredTreatmentsQuery)
+      .offset(
+        (paginationOptions.pageIndex - 1) * paginationOptions.itemsPerPage,
+      )
+      .limit(paginationOptions.itemsPerPage);
+    const filteredTreatmentsPage = await Promise.all(
+      filteredRawTreatmentsPage.map(
+        async (rawTreatment) =>
+          (await this.findOne(
+            new TreatmentUniqueTrait(rawTreatment.id),
+            [],
+            transaction,
+          ))!,
+      ),
     );
+
+    const [{ filteredTreatmentsCount }] = await transaction
+      .select({
+        filteredTreatmentsCount: count(filteredTreatmentsQuery.id),
+      })
+      .from(filteredTreatmentsQuery);
+
+    return {
+      items: filteredTreatmentsPage,
+      ...paginationOptions,
+      pageCount: Math.ceil(
+        filteredTreatmentsCount / paginationOptions.itemsPerPage,
+      ),
+      itemCount: filteredTreatmentsCount,
+    };
   }
 
   async findAll(
     filters: TreatmentFilter[] = [],
     transaction?: DrizzleTransaction,
   ): Promise<Treatment[]> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const filteredRawTreatments = await transaction
-          .select()
-          .from(treatmentTable)
-          .where(
-            and(
-              ...filters.map((filter) => filter.toSql(transaction)),
-              isNull(treatmentTable.deletedAt),
-            ),
-          );
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.findAll(filters, transaction);
+      });
+    }
 
-        const filteredTreatments = await Promise.all(
-          filteredRawTreatments.map(
-            async (rawTreatment) =>
-              (await this.findOne(
-                new TreatmentUniqueTrait(rawTreatment.id),
-                [],
-                transaction,
-              ))!,
-          ),
-        );
+    const filteredRawTreatments = await transaction
+      .select()
+      .from(treatmentTable)
+      .where(
+        and(
+          ...filters.map((filter) => filter.toSql(transaction)),
+          isNull(treatmentTable.deletedAt),
+        ),
+      );
 
-        return filteredTreatments;
-      },
+    const filteredTreatments = await Promise.all(
+      filteredRawTreatments.map(
+        async (rawTreatment) =>
+          (await this.findOne(
+            new TreatmentUniqueTrait(rawTreatment.id),
+            [],
+            transaction,
+          ))!,
+      ),
     );
+
+    return filteredTreatments;
   }
 
   async findOne(
@@ -195,35 +197,36 @@ export class TreatmentRepository {
     filters: TreatmentFilter[] = [],
     transaction?: DrizzleTransaction,
   ): Promise<Treatment | null> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const [treatment = null] = await transaction
-          .select()
-          .from(treatmentTable)
-          .where(
-            and(
-              ...filters.map((filter) => filter.toSql(transaction)),
-              treatmentUniqueTrait.toSql(),
-              isNull(treatmentTable.deletedAt),
-            ),
-          );
-        if (!treatment) {
-          return null;
-        }
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.findOne(treatmentUniqueTrait, filters, transaction);
+      });
+    }
+    const [treatment = null] = await transaction
+      .select()
+      .from(treatmentTable)
+      .where(
+        and(
+          ...filters.map((filter) => filter.toSql(transaction)),
+          treatmentUniqueTrait.toSql(),
+          isNull(treatmentTable.deletedAt),
+        ),
+      );
+    if (!treatment) {
+      return null;
+    }
 
-        const treatmentMedicaments =
-          await this.treatmentMedicamentRepository.findAll(
-            [
-              new FilterByTreatmentMedicamentFields({
-                treatmentId: treatment.id,
-              }),
-            ],
-            transaction,
-          );
+    const treatmentMedicaments =
+      await this.treatmentMedicamentRepository.findAll(
+        [
+          new FilterByTreatmentMedicamentFields({
+            treatmentId: treatment.id,
+          }),
+        ],
+        transaction,
+      );
 
-        return this.buildTreatment(treatment, treatmentMedicaments);
-      },
-    );
+    return this.buildTreatment(treatment, treatmentMedicaments);
   }
 
   async replace(
@@ -231,48 +234,53 @@ export class TreatmentRepository {
     treatmentReplacement: TreatmentReplacement,
     transaction?: DrizzleTransaction,
   ): Promise<Treatment> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const currentTreatment = await this.findOne(
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.replace(
           treatmentUniqueTrait,
-          [],
+          treatmentReplacement,
           transaction,
         );
-        if (!currentTreatment) {
-          throw new TreatmentNotFoundError();
-        }
-
-        const [newTreatment] = await transaction
-          .update(treatmentTable)
-          .set({
-            ...treatmentReplacement,
-            id: treatmentReplacement.id ?? currentTreatment.id,
-          })
-          .where(
-            and(treatmentUniqueTrait.toSql(), isNull(treatmentTable.deletedAt)),
-          )
-          .returning();
-
-        await this.treatmentMedicamentRepository.deleteMany(
-          [
-            new FilterByTreatmentMedicamentFields({
-              treatmentId: newTreatment.id,
-            }),
-          ],
-          transaction,
-        );
-        const treatmentMedicaments =
-          await this.treatmentMedicamentRepository.createMany(
-            treatmentReplacement.medicaments.map((treatmentMedicament) => ({
-              ...treatmentMedicament,
-              treatmentId: newTreatment.id,
-            })),
-            transaction,
-          );
-
-        return this.buildTreatment(newTreatment, treatmentMedicaments);
-      },
+      });
+    }
+    const currentTreatment = await this.findOne(
+      treatmentUniqueTrait,
+      [],
+      transaction,
     );
+    if (!currentTreatment) {
+      throw new TreatmentNotFoundError();
+    }
+
+    const [newTreatment] = await transaction
+      .update(treatmentTable)
+      .set({
+        ...treatmentReplacement,
+        id: treatmentReplacement.id ?? currentTreatment.id,
+      })
+      .where(
+        and(treatmentUniqueTrait.toSql(), isNull(treatmentTable.deletedAt)),
+      )
+      .returning();
+
+    await this.treatmentMedicamentRepository.deleteMany(
+      [
+        new FilterByTreatmentMedicamentFields({
+          treatmentId: newTreatment.id,
+        }),
+      ],
+      transaction,
+    );
+    const treatmentMedicaments =
+      await this.treatmentMedicamentRepository.createMany(
+        treatmentReplacement.medicaments.map((treatmentMedicament) => ({
+          ...treatmentMedicament,
+          treatmentId: newTreatment.id,
+        })),
+        transaction,
+      );
+
+    return this.buildTreatment(newTreatment, treatmentMedicaments);
   }
 
   private buildTreatment(
@@ -292,24 +300,21 @@ export class TreatmentRepository {
     treatmentUniqueTrait: TreatmentUniqueTrait,
     transaction?: DrizzleTransaction,
   ): Promise<Treatment> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const treatment = await this.findOne(
-          treatmentUniqueTrait,
-          [],
-          transaction,
-        );
-        if (!treatment) {
-          throw new TreatmentNotFoundError();
-        }
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.delete(treatmentUniqueTrait, transaction);
+      });
+    }
+    const treatment = await this.findOne(treatmentUniqueTrait, [], transaction);
+    if (!treatment) {
+      throw new TreatmentNotFoundError();
+    }
 
-        await transaction
-          .update(treatmentTable)
-          .set({ deletedAt: new Date(DateTime.now().toISO()) })
-          .where(eq(treatmentTable.id, treatment.id));
+    await transaction
+      .update(treatmentTable)
+      .set({ deletedAt: new Date(DateTime.now().toISO()) })
+      .where(eq(treatmentTable.id, treatment.id));
 
-        return treatment;
-      },
-    );
+    return treatment;
   }
 }

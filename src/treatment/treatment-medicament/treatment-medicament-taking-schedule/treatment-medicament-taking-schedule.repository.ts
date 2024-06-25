@@ -67,22 +67,35 @@ export class TreatmentMedicamentTakingScheduleRepository {
     treatmentMedicamentTakingScheduleCreations: TreatmentMedicamentTakingScheduleCreation[],
     transaction?: DrizzleTransaction,
   ): Promise<TreatmentMedicamentTakingSchedule[]> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const treatmentMedicamentTakingSchedules = await transaction
-          .insert(treatmentMedicamentTakingScheduleTable)
-          .values(treatmentMedicamentTakingScheduleCreations)
-          .returning();
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.createMany(
+          treatmentMedicamentTakingScheduleCreations,
+          transaction,
+        );
+      });
+    }
+    const treatmentMedicamentTakingSchedules = await transaction
+      .insert(treatmentMedicamentTakingScheduleTable)
+      .values(treatmentMedicamentTakingScheduleCreations)
+      .returning();
 
-        return treatmentMedicamentTakingSchedules;
-      },
-    );
+    return treatmentMedicamentTakingSchedules;
   }
 
   async create(
     treatmentMedicamentTakingScheduleCreation: TreatmentMedicamentTakingScheduleCreation,
     transaction?: DrizzleTransaction,
   ): Promise<TreatmentMedicamentTakingSchedule> {
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.create(
+          treatmentMedicamentTakingScheduleCreation,
+          transaction,
+        );
+      });
+    }
+
     const [treatmentMedicamentTakingSchedule] = await this.createMany(
       [treatmentMedicamentTakingScheduleCreation],
       transaction,
@@ -95,56 +108,58 @@ export class TreatmentMedicamentTakingScheduleRepository {
     filters: TreatmentMedicamentTakingScheduleFilter[] = [],
     transaction?: DrizzleTransaction,
   ): Promise<Page<TreatmentMedicamentTakingSchedule>> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const filteredTreatmentMedicamentTakingSchedulesQuery = transaction
-          .select()
-          .from(treatmentMedicamentTakingScheduleTable)
-          .where(and(...filters.map((filter) => filter.toSql(transaction))))
-          .as('filtered_treatment_medicaments');
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.findPage(paginationOptions, filters, transaction);
+      });
+    }
+    const filteredTreatmentMedicamentTakingSchedulesQuery = transaction
+      .select()
+      .from(treatmentMedicamentTakingScheduleTable)
+      .where(and(...filters.map((filter) => filter.toSql(transaction))))
+      .as('filtered_treatment_medicaments');
 
-        const filteredTreatmentMedicamentTakingSchedulesPage = await transaction
-          .select()
-          .from(filteredTreatmentMedicamentTakingSchedulesQuery)
-          .offset(
-            (paginationOptions.pageIndex - 1) * paginationOptions.itemsPerPage,
-          )
-          .limit(paginationOptions.itemsPerPage);
+    const filteredTreatmentMedicamentTakingSchedulesPage = await transaction
+      .select()
+      .from(filteredTreatmentMedicamentTakingSchedulesQuery)
+      .offset(
+        (paginationOptions.pageIndex - 1) * paginationOptions.itemsPerPage,
+      )
+      .limit(paginationOptions.itemsPerPage);
 
-        const [{ filteredTreatmentMedicamentTakingSchedulesCount }] =
-          await transaction
-            .select({
-              filteredTreatmentMedicamentTakingSchedulesCount: count(
-                filteredTreatmentMedicamentTakingSchedulesQuery.id,
-              ),
-            })
-            .from(filteredTreatmentMedicamentTakingSchedulesQuery);
-
-        return {
-          items: filteredTreatmentMedicamentTakingSchedulesPage,
-          ...paginationOptions,
-          pageCount: Math.ceil(
-            filteredTreatmentMedicamentTakingSchedulesCount /
-              paginationOptions.itemsPerPage,
+    const [{ filteredTreatmentMedicamentTakingSchedulesCount }] =
+      await transaction
+        .select({
+          filteredTreatmentMedicamentTakingSchedulesCount: count(
+            filteredTreatmentMedicamentTakingSchedulesQuery.id,
           ),
-          itemCount: filteredTreatmentMedicamentTakingSchedulesCount,
-        };
-      },
-    );
+        })
+        .from(filteredTreatmentMedicamentTakingSchedulesQuery);
+
+    return {
+      items: filteredTreatmentMedicamentTakingSchedulesPage,
+      ...paginationOptions,
+      pageCount: Math.ceil(
+        filteredTreatmentMedicamentTakingSchedulesCount /
+          paginationOptions.itemsPerPage,
+      ),
+      itemCount: filteredTreatmentMedicamentTakingSchedulesCount,
+    };
   }
 
   async findAll(
     filters: TreatmentMedicamentTakingScheduleFilter[] = [],
     transaction?: DrizzleTransaction,
   ): Promise<TreatmentMedicamentTakingSchedule[]> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        return await transaction
-          .select()
-          .from(treatmentMedicamentTakingScheduleTable)
-          .where(and(...filters.map((filter) => filter.toSql(transaction))));
-      },
-    );
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.findAll(filters, transaction);
+      });
+    }
+    return await transaction
+      .select()
+      .from(treatmentMedicamentTakingScheduleTable)
+      .where(and(...filters.map((filter) => filter.toSql(transaction))));
   }
 
   async findOne(
@@ -152,21 +167,26 @@ export class TreatmentMedicamentTakingScheduleRepository {
     filters: TreatmentMedicamentTakingScheduleFilter[] = [],
     transaction?: DrizzleTransaction,
   ): Promise<TreatmentMedicamentTakingSchedule | null> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const [treatmentMedicamentTakingSchedule = null] = await transaction
-          .select()
-          .from(treatmentMedicamentTakingScheduleTable)
-          .where(
-            and(
-              treatmentMedicamentTakingScheduleUniqueTrait.toSql(),
-              ...filters.map((filter) => filter.toSql(transaction)),
-            ),
-          );
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.findOne(
+          treatmentMedicamentTakingScheduleUniqueTrait,
+          filters,
+          transaction,
+        );
+      });
+    }
+    const [treatmentMedicamentTakingSchedule = null] = await transaction
+      .select()
+      .from(treatmentMedicamentTakingScheduleTable)
+      .where(
+        and(
+          treatmentMedicamentTakingScheduleUniqueTrait.toSql(),
+          ...filters.map((filter) => filter.toSql(transaction)),
+        ),
+      );
 
-        return treatmentMedicamentTakingSchedule;
-      },
-    );
+    return treatmentMedicamentTakingSchedule;
   }
 
   async replace(
@@ -174,60 +194,66 @@ export class TreatmentMedicamentTakingScheduleRepository {
     treatmentMedicamentTakingScheduleReplacement: TreatmentMedicamentTakingScheduleReplacement,
     transaction?: DrizzleTransaction,
   ): Promise<TreatmentMedicamentTakingSchedule> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        if (
-          !(await this.findOne(treatmentMedicamentTakingScheduleUniqueTrait))
-        ) {
-          throw new TreatmentMedicamentTakingScheduleNotFoundError();
-        }
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.replace(
+          treatmentMedicamentTakingScheduleUniqueTrait,
+          treatmentMedicamentTakingScheduleReplacement,
+          transaction,
+        );
+      });
+    }
+    if (!(await this.findOne(treatmentMedicamentTakingScheduleUniqueTrait))) {
+      throw new TreatmentMedicamentTakingScheduleNotFoundError();
+    }
 
-        const [treatmentMedicamentTakingSchedule] = await transaction
-          .update(treatmentMedicamentTakingScheduleTable)
-          .set(treatmentMedicamentTakingScheduleReplacement)
-          .where(treatmentMedicamentTakingScheduleUniqueTrait.toSql())
-          .returning();
+    const [treatmentMedicamentTakingSchedule] = await transaction
+      .update(treatmentMedicamentTakingScheduleTable)
+      .set(treatmentMedicamentTakingScheduleReplacement)
+      .where(treatmentMedicamentTakingScheduleUniqueTrait.toSql())
+      .returning();
 
-        return treatmentMedicamentTakingSchedule;
-      },
-    );
+    return treatmentMedicamentTakingSchedule;
   }
 
   async deleteMany(
     filters: TreatmentMedicamentTakingScheduleFilter[],
     transaction?: DrizzleTransaction,
   ): Promise<TreatmentMedicamentTakingSchedule[]> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const treatmentMedicamentTakingSchedules = await transaction
-          .delete(treatmentMedicamentTakingScheduleTable)
-          .where(and(...filters.map((filter) => filter.toSql(transaction))))
-          .returning();
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.deleteMany(filters, transaction);
+      });
+    }
+    const treatmentMedicamentTakingSchedules = await transaction
+      .delete(treatmentMedicamentTakingScheduleTable)
+      .where(and(...filters.map((filter) => filter.toSql(transaction))))
+      .returning();
 
-        return treatmentMedicamentTakingSchedules;
-      },
-    );
+    return treatmentMedicamentTakingSchedules;
   }
 
   async delete(
     treatmentMedicamentTakingScheduleUniqueTrait: TreatmentMedicamentTakingScheduleUniqueTrait,
     transaction?: DrizzleTransaction,
   ): Promise<TreatmentMedicamentTakingSchedule> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        if (
-          !(await this.findOne(treatmentMedicamentTakingScheduleUniqueTrait))
-        ) {
-          throw new TreatmentMedicamentTakingScheduleNotFoundError();
-        }
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.delete(
+          treatmentMedicamentTakingScheduleUniqueTrait,
+          transaction,
+        );
+      });
+    }
+    if (!(await this.findOne(treatmentMedicamentTakingScheduleUniqueTrait))) {
+      throw new TreatmentMedicamentTakingScheduleNotFoundError();
+    }
 
-        const [treatmentMedicamentTakingSchedule] = await transaction
-          .delete(treatmentMedicamentTakingScheduleTable)
-          .where(treatmentMedicamentTakingScheduleUniqueTrait.toSql())
-          .returning();
+    const [treatmentMedicamentTakingSchedule] = await transaction
+      .delete(treatmentMedicamentTakingScheduleTable)
+      .where(treatmentMedicamentTakingScheduleUniqueTrait.toSql())
+      .returning();
 
-        return treatmentMedicamentTakingSchedule;
-      },
-    );
+    return treatmentMedicamentTakingSchedule;
   }
 }

@@ -72,25 +72,26 @@ export class PatientMedicamentTakenRepository {
     patientMedicamentTakenCreation: PatientMedicamentTakenCreation,
     transaction?: DrizzleTransaction,
   ): Promise<PatientMedicamentTaken> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const patient = await this.patientRepository.findOne(
-          PatientUniqueTrait.fromId(patientMedicamentTakenCreation.patientId),
-          [],
-          transaction,
-        );
-        if (!patient) {
-          throw new PatientNotFoundError();
-        }
-
-        const [patientMedicamentTaken] = await transaction
-          .insert(patientMedicamentTakenTable)
-          .values(patientMedicamentTakenCreation)
-          .returning();
-
-        return patientMedicamentTaken;
-      },
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.create(patientMedicamentTakenCreation, transaction);
+      });
+    }
+    const patient = await this.patientRepository.findOne(
+      PatientUniqueTrait.fromId(patientMedicamentTakenCreation.patientId),
+      [],
+      transaction,
     );
+    if (!patient) {
+      throw new PatientNotFoundError();
+    }
+
+    const [patientMedicamentTaken] = await transaction
+      .insert(patientMedicamentTakenTable)
+      .values(patientMedicamentTakenCreation)
+      .returning();
+
+    return patientMedicamentTaken;
   }
 
   async findPage(
@@ -98,55 +99,56 @@ export class PatientMedicamentTakenRepository {
     filters: PatientMedicamentTakenFilter[] = [],
     transaction?: DrizzleTransaction,
   ): Promise<Page<PatientMedicamentTaken>> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const filteredPatientMedicamentTakenQuery = transaction
-          .select()
-          .from(patientMedicamentTakenTable)
-          .where(and(...filters.map((filter) => filter.toSql(transaction))))
-          .as('filtered_patient_medicaments_taken');
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.findPage(paginationOptions, filters, transaction);
+      });
+    }
+    const filteredPatientMedicamentTakenQuery = transaction
+      .select()
+      .from(patientMedicamentTakenTable)
+      .where(and(...filters.map((filter) => filter.toSql(transaction))))
+      .as('filtered_patient_medicaments_taken');
 
-        const filteredPatientMedicamentTakenPage = await transaction
-          .select()
-          .from(filteredPatientMedicamentTakenQuery)
-          .offset(
-            (paginationOptions.pageIndex - 1) * paginationOptions.itemsPerPage,
-          )
-          .limit(paginationOptions.itemsPerPage);
+    const filteredPatientMedicamentTakenPage = await transaction
+      .select()
+      .from(filteredPatientMedicamentTakenQuery)
+      .offset(
+        (paginationOptions.pageIndex - 1) * paginationOptions.itemsPerPage,
+      )
+      .limit(paginationOptions.itemsPerPage);
 
-        const [{ filteredPatientMedicamentTakensCount }] = await transaction
-          .select({
-            filteredPatientMedicamentTakensCount: count(
-              filteredPatientMedicamentTakenQuery.patientId,
-            ),
-          })
-          .from(filteredPatientMedicamentTakenQuery);
+    const [{ filteredPatientMedicamentTakensCount }] = await transaction
+      .select({
+        filteredPatientMedicamentTakensCount: count(
+          filteredPatientMedicamentTakenQuery.patientId,
+        ),
+      })
+      .from(filteredPatientMedicamentTakenQuery);
 
-        return {
-          items: filteredPatientMedicamentTakenPage,
-          ...paginationOptions,
-          pageCount: Math.ceil(
-            filteredPatientMedicamentTakensCount /
-              paginationOptions.itemsPerPage,
-          ),
-          itemCount: filteredPatientMedicamentTakensCount,
-        };
-      },
-    );
+    return {
+      items: filteredPatientMedicamentTakenPage,
+      ...paginationOptions,
+      pageCount: Math.ceil(
+        filteredPatientMedicamentTakensCount / paginationOptions.itemsPerPage,
+      ),
+      itemCount: filteredPatientMedicamentTakensCount,
+    };
   }
 
   async findAll(
     filters: PatientMedicamentTakenFilter[] = [],
     transaction?: DrizzleTransaction,
   ): Promise<PatientMedicamentTaken[]> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        return await transaction
-          .select()
-          .from(patientMedicamentTakenTable)
-          .where(and(...filters.map((filter) => filter.toSql(transaction))));
-      },
-    );
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.findAll(filters, transaction);
+      });
+    }
+    return await transaction
+      .select()
+      .from(patientMedicamentTakenTable)
+      .where(and(...filters.map((filter) => filter.toSql(transaction))));
   }
 
   async findOne(
@@ -154,20 +156,25 @@ export class PatientMedicamentTakenRepository {
     filters: PatientMedicamentTakenFilter[] = [],
     transaction?: DrizzleTransaction,
   ): Promise<PatientMedicamentTaken | null> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const [patientMedicamentTaken = null] = await transaction
-          .select()
-          .from(patientMedicamentTakenTable)
-          .where(
-            and(
-              ...filters.map((filter) => filter.toSql(transaction)),
-              patientMedicamentTakenUniqueTrait.toSql(),
-            ),
-          );
-        return patientMedicamentTaken;
-      },
-    );
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.findOne(
+          patientMedicamentTakenUniqueTrait,
+          filters,
+          transaction,
+        );
+      });
+    }
+    const [patientMedicamentTaken = null] = await transaction
+      .select()
+      .from(patientMedicamentTakenTable)
+      .where(
+        and(
+          ...filters.map((filter) => filter.toSql(transaction)),
+          patientMedicamentTakenUniqueTrait.toSql(),
+        ),
+      );
+    return patientMedicamentTaken;
   }
 
   async replace(
@@ -175,61 +182,64 @@ export class PatientMedicamentTakenRepository {
     patientMedicamentTakenReplacement: PatientMedicamentTakenReplacement,
     transaction?: DrizzleTransaction,
   ): Promise<PatientMedicamentTaken> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        if (
-          !(await this.findOne(
-            patientMedicamentTakenUniqueTrait,
-            [],
-            transaction,
-          ))
-        ) {
-          throw new PatientMedicamentTakenNotFoundError();
-        }
-
-        const patient = await this.patientRepository.findOne(
-          PatientUniqueTrait.fromId(
-            patientMedicamentTakenReplacement.patientId,
-          ),
-          [],
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.replace(
+          patientMedicamentTakenUniqueTrait,
+          patientMedicamentTakenReplacement,
           transaction,
         );
-        if (!patient) {
-          throw new PatientNotFoundError();
-        }
+      });
+    }
+    if (
+      !(await this.findOne(patientMedicamentTakenUniqueTrait, [], transaction))
+    ) {
+      throw new PatientMedicamentTakenNotFoundError();
+    }
 
-        const [patientMedicamentTaken] = await transaction
-          .update(patientMedicamentTakenTable)
-          .set(patientMedicamentTakenReplacement)
-          .where(patientMedicamentTakenUniqueTrait.toSql())
-          .returning();
-
-        return patientMedicamentTaken;
-      },
+    const patient = await this.patientRepository.findOne(
+      PatientUniqueTrait.fromId(patientMedicamentTakenReplacement.patientId),
+      [],
+      transaction,
     );
+    if (!patient) {
+      throw new PatientNotFoundError();
+    }
+
+    const [patientMedicamentTaken] = await transaction
+      .update(patientMedicamentTakenTable)
+      .set(patientMedicamentTakenReplacement)
+      .where(patientMedicamentTakenUniqueTrait.toSql())
+      .returning();
+
+    return patientMedicamentTaken;
   }
 
   async delete(
     patientMedicamentTakenUniqueTrait: PatientMedicamentTakenUniqueTrait,
     transaction?: DrizzleTransaction,
   ): Promise<PatientMedicamentTaken> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const patientMedicamentTaken = await this.findOne(
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.delete(
           patientMedicamentTakenUniqueTrait,
-          [],
           transaction,
         );
-        if (!patientMedicamentTaken) {
-          throw new PatientMedicamentTakenNotFoundError();
-        }
-
-        await transaction
-          .delete(patientMedicamentTakenTable)
-          .where(patientMedicamentTakenUniqueTrait.toSql());
-
-        return patientMedicamentTaken;
-      },
+      });
+    }
+    const patientMedicamentTaken = await this.findOne(
+      patientMedicamentTakenUniqueTrait,
+      [],
+      transaction,
     );
+    if (!patientMedicamentTaken) {
+      throw new PatientMedicamentTakenNotFoundError();
+    }
+
+    await transaction
+      .delete(patientMedicamentTakenTable)
+      .where(patientMedicamentTakenUniqueTrait.toSql());
+
+    return patientMedicamentTaken;
   }
 }

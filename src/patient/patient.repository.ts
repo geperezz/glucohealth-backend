@@ -94,48 +94,49 @@ export class PatientRepository {
     patientCreation: PatientCreation,
     transaction?: DrizzleTransaction,
   ): Promise<Patient> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const user = await this.userRepository.create(
-          {
-            ...patientCreation,
-            role: 'patient',
-          },
-          transaction,
-        );
-
-        const [patient] = await transaction
-          .insert(patientTable)
-          .values({
-            ...patientCreation,
-            id: user.id,
-          })
-          .returning();
-
-        const treatment = await this.treatmentRepository.create(
-          { patientId: patient.id, medicaments: [] },
-          transaction,
-        );
-
-        try {
-          await this.mailerService.sendMail({
-            to: user.email,
-            subject: `Registro GlucoHealth`,
-            template: './signup',
-            context: {
-              name: 'Paciente',
-              role: 'paciente',
-              email: user.email,
-              password: user.password,
-            },
-          });
-        } catch (error) {
-          throw new MailNotSentError(undefined, { cause: error });
-        }
-
-        return this.buildPatientEntity(user, patient, treatment);
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.create(patientCreation, transaction);
+      });
+    }
+    const user = await this.userRepository.create(
+      {
+        ...patientCreation,
+        role: 'patient',
       },
+      transaction,
     );
+
+    const [patient] = await transaction
+      .insert(patientTable)
+      .values({
+        ...patientCreation,
+        id: user.id,
+      })
+      .returning();
+
+    const treatment = await this.treatmentRepository.create(
+      { patientId: patient.id, medicaments: [] },
+      transaction,
+    );
+
+    try {
+      await this.mailerService.sendMail({
+        to: user.email,
+        subject: `Registro GlucoHealth`,
+        template: './signup',
+        context: {
+          name: 'Paciente',
+          role: 'paciente',
+          email: user.email,
+          password: user.password,
+        },
+      });
+    } catch (error) {
+      throw new MailNotSentError(undefined, { cause: error });
+    }
+
+    return this.buildPatientEntity(user, patient, treatment);
   }
 
   async findPage(
@@ -143,29 +144,30 @@ export class PatientRepository {
     filters: PatientFilter[] = [],
     transaction?: DrizzleTransaction,
   ): Promise<Page<Patient>> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const filteredUsersPage = await this.userRepository.findPage(
-          paginationOptions,
-          [...filters, new FilterByUserFields({ role: 'patient' })],
-          transaction,
-        );
-
-        return {
-          ...filteredUsersPage,
-          items: await Promise.all(
-            filteredUsersPage.items.map(
-              async (user) =>
-                (await this.findOne(
-                  PatientUniqueTrait.fromId(user.id),
-                  [],
-                  transaction,
-                ))!,
-            ),
-          ),
-        };
-      },
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.findPage(paginationOptions, filters, transaction);
+      });
+    }
+    const filteredUsersPage = await this.userRepository.findPage(
+      paginationOptions,
+      [...filters, new FilterByUserFields({ role: 'patient' })],
+      transaction,
     );
+
+    return {
+      ...filteredUsersPage,
+      items: await Promise.all(
+        filteredUsersPage.items.map(
+          async (user) =>
+            (await this.findOne(
+              PatientUniqueTrait.fromId(user.id),
+              [],
+              transaction,
+            ))!,
+        ),
+      ),
+    };
   }
 
   async findOne(
@@ -173,30 +175,31 @@ export class PatientRepository {
     filters: PatientFilter[] = [],
     transaction?: DrizzleTransaction,
   ): Promise<Patient | null> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const user = await this.userRepository.findOne(
-          patientUniqueTrait,
-          [...filters, new FilterByUserFields({ role: 'patient' })],
-          transaction,
-        );
-        if (!user) {
-          return null;
-        }
-
-        const [patient] = await transaction
-          .select()
-          .from(patientTable)
-          .where(eq(patientTable.id, user.id));
-
-        const [treatment] = await this.treatmentRepository.findAll(
-          [new FilterByTreatmentFields({ patientId: patient.id })],
-          transaction,
-        );
-
-        return this.buildPatientEntity(user, patient, treatment);
-      },
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.findOne(patientUniqueTrait, filters, transaction);
+      });
+    }
+    const user = await this.userRepository.findOne(
+      patientUniqueTrait,
+      [...filters, new FilterByUserFields({ role: 'patient' })],
+      transaction,
     );
+    if (!user) {
+      return null;
+    }
+
+    const [patient] = await transaction
+      .select()
+      .from(patientTable)
+      .where(eq(patientTable.id, user.id));
+
+    const [treatment] = await this.treatmentRepository.findAll(
+      [new FilterByTreatmentFields({ patientId: patient.id })],
+      transaction,
+    );
+
+    return this.buildPatientEntity(user, patient, treatment);
   }
 
   private buildPatientEntity(
@@ -240,52 +243,58 @@ export class PatientRepository {
     patientReplacement: PatientReplacement,
     transaction?: DrizzleTransaction,
   ): Promise<Patient> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        if (!(await this.findOne(patientUniqueTrait))) {
-          throw new PatientNotFoundError();
-        }
-
-        const user = await this.userRepository.replace(
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.replace(
           patientUniqueTrait,
-          {
-            ...patientReplacement,
-            role: 'patient',
-          },
+          patientReplacement,
           transaction,
         );
+      });
+    }
+    if (!(await this.findOne(patientUniqueTrait))) {
+      throw new PatientNotFoundError();
+    }
 
-        await transaction
-          .update(patientTable)
-          .set(patientReplacement)
-          .where(eq(patientTable.id, user.id));
-
-        return (await this.findOne(PatientUniqueTrait.fromId(user.id)))!;
+    const user = await this.userRepository.replace(
+      patientUniqueTrait,
+      {
+        ...patientReplacement,
+        role: 'patient',
       },
+      transaction,
     );
+
+    await transaction
+      .update(patientTable)
+      .set(patientReplacement)
+      .where(eq(patientTable.id, user.id));
+
+    return (await this.findOne(PatientUniqueTrait.fromId(user.id)))!;
   }
 
   async delete(
     patientUniqueTrait: PatientUniqueTrait,
     transaction?: DrizzleTransaction,
   ): Promise<Patient> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const patient = await this.findOne(patientUniqueTrait);
-        if (!patient) {
-          throw new PatientNotFoundError();
-        }
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.delete(patientUniqueTrait, transaction);
+      });
+    }
+    const patient = await this.findOne(patientUniqueTrait);
+    if (!patient) {
+      throw new PatientNotFoundError();
+    }
 
-        await this.treatmentRepository.delete(
-          new TreatmentUniqueTrait(patient.treatment.id),
-        );
-        await transaction
-          .delete(patientTable)
-          .where(eq(patientTable.id, patient.id));
-        await this.userRepository.delete(patientUniqueTrait, transaction);
-
-        return patient;
-      },
+    await this.treatmentRepository.delete(
+      new TreatmentUniqueTrait(patient.treatment.id),
     );
+    await transaction
+      .delete(patientTable)
+      .where(eq(patientTable.id, patient.id));
+    await this.userRepository.delete(patientUniqueTrait, transaction);
+
+    return patient;
   }
 }

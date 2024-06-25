@@ -11,11 +11,12 @@ export class DrizzleSeeder {
   ) {}
 
   async seed(transaction?: DrizzleTransaction): Promise<void> {
-    await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        await this.seedAdmins(transaction);
-      },
-    );
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.seed(transaction);
+      });
+    }
+    await this.seedAdmins(transaction);
   }
 
   private async seedAdmins(transaction: DrizzleTransaction): Promise<void> {

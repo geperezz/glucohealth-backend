@@ -43,42 +43,43 @@ export class NurseRepository {
     nurseCreation: NurseCreation,
     transaction?: DrizzleTransaction,
   ): Promise<Nurse> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const user = await this.userRepository.create(
-          {
-            ...nurseCreation,
-            role: 'nurse',
-          },
-          transaction,
-        );
-
-        try {
-          await this.mailerService.sendMail({
-            to: user.email,
-            subject: `Registro GlucoHealth`,
-            template: './signup',
-            context: {
-              name: user.fullName,
-              role: 'enfermero/a',
-              email: user.email,
-              password: user.password,
-            },
-            attachments: [
-              {
-                filename: 'logo.png',
-                path: 'src/templates/assets/logo.png',
-                cid: 'logo',
-              },
-            ],
-          });
-        } catch (error) {
-          throw new MailNotSentError(undefined, { cause: error });
-        }
-
-        return this.buildNurse(user);
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.create(nurseCreation, transaction);
+      });
+    }
+    const user = await this.userRepository.create(
+      {
+        ...nurseCreation,
+        role: 'nurse',
       },
+      transaction,
     );
+
+    try {
+      await this.mailerService.sendMail({
+        to: user.email,
+        subject: `Registro GlucoHealth`,
+        template: './signup',
+        context: {
+          name: user.fullName,
+          role: 'enfermero/a',
+          email: user.email,
+          password: user.password,
+        },
+        attachments: [
+          {
+            filename: 'logo.png',
+            path: 'src/templates/assets/logo.png',
+            cid: 'logo',
+          },
+        ],
+      });
+    } catch (error) {
+      throw new MailNotSentError(undefined, { cause: error });
+    }
+
+    return this.buildNurse(user);
   }
 
   async findPage(
@@ -86,25 +87,26 @@ export class NurseRepository {
     filters: NurseFilter[] = [],
     transaction?: DrizzleTransaction,
   ): Promise<Page<Nurse>> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const filteredUsersPage = await this.userRepository.findPage(
-          paginationOptions,
-          [...filters, new FilterByUserFields({ role: 'nurse' })],
-          transaction,
-        );
-
-        return {
-          ...filteredUsersPage,
-          items: await Promise.all(
-            filteredUsersPage.items.map(
-              async (user) =>
-                (await this.findOne(NurseUniqueTrait.fromId(user.id)))!,
-            ),
-          ),
-        };
-      },
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.findPage(paginationOptions, filters, transaction);
+      });
+    }
+    const filteredUsersPage = await this.userRepository.findPage(
+      paginationOptions,
+      [...filters, new FilterByUserFields({ role: 'nurse' })],
+      transaction,
     );
+
+    return {
+      ...filteredUsersPage,
+      items: await Promise.all(
+        filteredUsersPage.items.map(
+          async (user) =>
+            (await this.findOne(NurseUniqueTrait.fromId(user.id)))!,
+        ),
+      ),
+    };
   }
 
   async findOne(
@@ -112,20 +114,21 @@ export class NurseRepository {
     filters: NurseFilter[] = [],
     transaction?: DrizzleTransaction,
   ): Promise<Nurse | null> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const user = await this.userRepository.findOne(
-          nurseUniqueTrait,
-          [...filters, new FilterByUserFields({ role: 'nurse' })],
-          transaction,
-        );
-        if (!user) {
-          return null;
-        }
-
-        return this.buildNurse(user);
-      },
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.findOne(nurseUniqueTrait, filters, transaction);
+      });
+    }
+    const user = await this.userRepository.findOne(
+      nurseUniqueTrait,
+      [...filters, new FilterByUserFields({ role: 'nurse' })],
+      transaction,
     );
+    if (!user) {
+      return null;
+    }
+
+    return this.buildNurse(user);
   }
 
   private buildNurse(user: User): Nurse {
@@ -142,41 +145,47 @@ export class NurseRepository {
     nurseReplacement: NurseReplacement,
     transaction?: DrizzleTransaction,
   ): Promise<Nurse> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        if (!(await this.findOne(nurseUniqueTrait))) {
-          throw new NurseNotFoundError();
-        }
-
-        const user = await this.userRepository.replace(
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.replace(
           nurseUniqueTrait,
-          {
-            ...nurseReplacement,
-            role: 'nurse',
-          },
+          nurseReplacement,
           transaction,
         );
+      });
+    }
+    if (!(await this.findOne(nurseUniqueTrait))) {
+      throw new NurseNotFoundError();
+    }
 
-        return (await this.findOne(NurseUniqueTrait.fromId(user.id)))!;
+    const user = await this.userRepository.replace(
+      nurseUniqueTrait,
+      {
+        ...nurseReplacement,
+        role: 'nurse',
       },
+      transaction,
     );
+
+    return (await this.findOne(NurseUniqueTrait.fromId(user.id)))!;
   }
 
   async delete(
     nurseUniqueTrait: NurseUniqueTrait,
     transaction?: DrizzleTransaction,
   ): Promise<Nurse> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const nurse = await this.findOne(nurseUniqueTrait);
-        if (!nurse) {
-          throw new NurseNotFoundError();
-        }
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.delete(nurseUniqueTrait, transaction);
+      });
+    }
+    const nurse = await this.findOne(nurseUniqueTrait);
+    if (!nurse) {
+      throw new NurseNotFoundError();
+    }
 
-        await this.userRepository.delete(nurseUniqueTrait, transaction);
+    await this.userRepository.delete(nurseUniqueTrait, transaction);
 
-        return nurse;
-      },
-    );
+    return nurse;
   }
 }

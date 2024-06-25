@@ -82,22 +82,23 @@ export class UserRepository {
     userCreation: UserCreation,
     transaction?: DrizzleTransaction,
   ): Promise<User> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const passwordToUse =
-          userCreation.password ?? this.generateRandomPassword();
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.create(userCreation, transaction);
+      });
+    }
+    const passwordToUse =
+      userCreation.password ?? this.generateRandomPassword();
 
-        const [user] = await transaction
-          .insert(userTable)
-          .values({
-            ...userCreation,
-            password: this.hashPassword(passwordToUse),
-          })
-          .returning();
+    const [user] = await transaction
+      .insert(userTable)
+      .values({
+        ...userCreation,
+        password: this.hashPassword(passwordToUse),
+      })
+      .returning();
 
-        return { ...user, password: passwordToUse };
-      },
-    );
+    return { ...user, password: passwordToUse };
   }
 
   async findPage(
@@ -105,38 +106,37 @@ export class UserRepository {
     filters: UserFilter[] = [],
     transaction?: DrizzleTransaction,
   ): Promise<Page<User>> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const filteredUsersQuery = transaction
-          .select()
-          .from(userTable)
-          .where(and(...filters.map((filter) => filter.toSql(transaction))))
-          .as('filtered_users');
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.findPage(paginationOptions, filters, transaction);
+      });
+    }
+    const filteredUsersQuery = transaction
+      .select()
+      .from(userTable)
+      .where(and(...filters.map((filter) => filter.toSql(transaction))))
+      .as('filtered_users');
 
-        const filteredUsersPage = await transaction
-          .select()
-          .from(filteredUsersQuery)
-          .offset(
-            (paginationOptions.pageIndex - 1) * paginationOptions.itemsPerPage,
-          )
-          .limit(paginationOptions.itemsPerPage);
+    const filteredUsersPage = await transaction
+      .select()
+      .from(filteredUsersQuery)
+      .offset(
+        (paginationOptions.pageIndex - 1) * paginationOptions.itemsPerPage,
+      )
+      .limit(paginationOptions.itemsPerPage);
 
-        const [{ filteredUsersCount: filteredUsersCount }] = await transaction
-          .select({
-            filteredUsersCount: count(filteredUsersQuery.id),
-          })
-          .from(filteredUsersQuery);
+    const [{ filteredUsersCount: filteredUsersCount }] = await transaction
+      .select({
+        filteredUsersCount: count(filteredUsersQuery.id),
+      })
+      .from(filteredUsersQuery);
 
-        return {
-          items: filteredUsersPage,
-          ...paginationOptions,
-          pageCount: Math.ceil(
-            filteredUsersCount / paginationOptions.itemsPerPage,
-          ),
-          itemCount: filteredUsersCount,
-        };
-      },
-    );
+    return {
+      items: filteredUsersPage,
+      ...paginationOptions,
+      pageCount: Math.ceil(filteredUsersCount / paginationOptions.itemsPerPage),
+      itemCount: filteredUsersCount,
+    };
   }
 
   async findOne(
@@ -144,21 +144,22 @@ export class UserRepository {
     filters: UserFilter[] = [],
     transaction?: DrizzleTransaction,
   ): Promise<User | null> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        const [user = null] = await transaction
-          .select()
-          .from(userTable)
-          .where(
-            and(
-              userUniqueTrait.toSql(),
-              ...filters.map((filter) => filter.toSql(transaction)),
-            ),
-          );
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.findOne(userUniqueTrait, filters, transaction);
+      });
+    }
+    const [user = null] = await transaction
+      .select()
+      .from(userTable)
+      .where(
+        and(
+          userUniqueTrait.toSql(),
+          ...filters.map((filter) => filter.toSql(transaction)),
+        ),
+      );
 
-        return user;
-      },
-    );
+    return user;
   }
 
   async replace(
@@ -166,45 +167,51 @@ export class UserRepository {
     userReplacement: UserReplacement,
     transaction?: DrizzleTransaction,
   ): Promise<User> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        if (!(await this.findOne(userUniqueTrait))) {
-          throw new UserNotFoundError();
-        }
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.replace(
+          userUniqueTrait,
+          userReplacement,
+          transaction,
+        );
+      });
+    }
+    if (!(await this.findOne(userUniqueTrait))) {
+      throw new UserNotFoundError();
+    }
 
-        const [user] = await transaction
-          .update(userTable)
-          .set({
-            ...userReplacement,
-            password: userReplacement.password
-              ? this.hashPassword(userReplacement.password)
-              : undefined,
-          })
-          .where(userUniqueTrait.toSql())
-          .returning();
+    const [user] = await transaction
+      .update(userTable)
+      .set({
+        ...userReplacement,
+        password: userReplacement.password
+          ? this.hashPassword(userReplacement.password)
+          : undefined,
+      })
+      .where(userUniqueTrait.toSql())
+      .returning();
 
-        return user;
-      },
-    );
+    return user;
   }
 
   async delete(
     userUniqueTrait: UserUniqueTrait,
     transaction?: DrizzleTransaction,
   ): Promise<User> {
-    return await (transaction ?? this.drizzleClient).transaction(
-      async (transaction) => {
-        if (!(await this.findOne(userUniqueTrait))) {
-          throw new UserNotFoundError();
-        }
+    if (transaction === undefined) {
+      return await this.drizzleClient.transaction(async (transaction) => {
+        return await this.delete(userUniqueTrait, transaction);
+      });
+    }
+    if (!(await this.findOne(userUniqueTrait))) {
+      throw new UserNotFoundError();
+    }
 
-        const [user] = await transaction
-          .delete(userTable)
-          .where(userUniqueTrait.toSql())
-          .returning();
+    const [user] = await transaction
+      .delete(userTable)
+      .where(userUniqueTrait.toSql())
+      .returning();
 
-        return user;
-      },
-    );
+    return user;
   }
 }
