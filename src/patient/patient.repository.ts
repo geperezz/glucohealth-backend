@@ -289,6 +289,7 @@ export class PatientRepository {
 
     await this.treatmentRepository.delete(
       new TreatmentUniqueTrait(patient.treatment.id),
+      transaction,
     );
     await transaction
       .delete(patientTable)
